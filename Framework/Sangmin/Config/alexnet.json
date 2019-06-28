@@ -1,0 +1,50 @@
+{
+    "dir": {
+        "log": "./Log",
+        "data": "./data",
+        "model": "./alexnet/models",
+        "results": "./alexnet/results"
+    },
+    "log": {
+        "logger": "alexnet",
+        "fpath": "alexnet.log"
+    },
+    "data": {
+        "dataset": "cifar10",
+        "batch_size": 64
+    },
+    "model": {
+        "algo": "alexnet",
+        "param": {
+            "num_classes": 10
+        }
+    },
+    "train_test": {
+        "num_epochs": 50,
+        "criterion": "cross_entropy",
+        "fpath": {
+            "model": "alexnet_model.pt"
+        },    
+        "train": {
+            "param": {
+                "optim": "sgd",
+                "learning_rate": 0.01,
+                "momentum": 0.9,
+                "weight_decay": 5e-4
+            }
+        },
+        "test": {
+            "param": {
+                "verbose": "top1 accuracy",
+                "topk": 1
+            }
+        }
+    },
+    "plot_store": {
+        "fpath": {
+            "train_loss": "alexnet_train_loss.pickle",
+            "test_acc": "alexnet_acc.pickle",
+            "img": "alexnet_train_test_graph.png"
+        }
+    }
+}
