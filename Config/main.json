@@ -1,0 +1,73 @@
+{
+    "data": {
+        "dataset": "cifar100",
+        "batch_size": 128,
+        "valid_size": 0,
+        "fixed_valid": true,
+        "autoaugment": true,
+        "aug_policy": "cifar100",
+        "root": "./data/cifar100/valid0_batch128_cifar100_policy"
+    },
+    "model": {
+        "param": {
+            "activation": "swish",
+            "activation_param": {
+            },
+            "avail_resource": 2,
+            "resolution_coefficient": 1.4,
+            "width_coefficient": 0.9,
+            "depth_coefficient": 1.0,
+            "image_size": 32,
+            "num_classes": 100
+        },
+        "pretrained": {
+            "enabled": true,
+            "fpath": "./results/trained_models/baseline"
+        },
+        "prune": {
+            "enabled": true,
+            "weight_reset": false,
+            "method": "weight",
+            "sparsity": 50,
+            "rounds": 2,
+            "gradually": true,
+            "norm": true
+        }
+    },
+    "criterion": {
+        "algo": "label_smoothing",
+        "param": {
+            "classes": 100,
+            "smoothing": 0.3
+        }
+    },
+    "optimizer": {
+        "algo": "sgd",
+        "param": {
+            "lr": 0.15,
+            "weight_decay": 1e-5,
+            "momentum": 0.9
+        }
+    },
+    "scheduler": {
+        "enabled": true,
+        "type": "cosine",
+        "param": {
+            "T_max": 2400,
+            "eta_min": 0
+        }
+    },
+    "trainhandler": {
+        "device": "cuda:1",
+        "path": "./results",
+        "name": "testing",
+        "mixup": {
+            "enabled": true,
+            "alpha": 1.0
+        },
+        "precision": 16,
+        "train": {
+            "num_epochs": 1
+        }
+    }
+}

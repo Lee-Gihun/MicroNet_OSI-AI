@@ -1,0 +1,56 @@
+{
+    "data": {
+        "dataset": "cifar100",
+        "batch_size": 128,
+        "valid_size": 5000,
+        "fixed_valid": true,
+        "autoaugment": true,
+        "aug_policy": "cifar100",
+        "root": "./data/cifar100/automl_scaling_coefficient"
+    },
+    "model": {
+        "param": {
+            "activation": "swish",
+            "activation_param": {
+            },
+            "image_size": 32,
+            "num_classes": 100
+        }
+    },
+    "criterion": {
+        "algo": "label_smoothing",
+        "param": {
+            "classes": 100,
+            "smoothing": 0.3
+        }
+    },
+    "optimizer": {
+        "algo": "sgd",
+        "param": {
+            "lr": 0.15,
+            "weight_decay": 1e-5,
+            "momentum": 0.9
+        }
+    },
+    "scheduler": {
+        "enabled": true,
+        "type": "cosine",
+        "param": {
+            "T_max": 1,
+            "eta_min": 0
+        }
+    },
+    "trainhandler": {
+        "device": "cuda:1",
+        "path": "./results",
+        "name": "automl_scaling_coefficient",
+        "mixup": {
+            "enabled": true,
+            "alpha": 1.0
+        },
+        "precision": 16,
+        "train": {
+            "num_epochs": 1
+        }
+    }
+}
