@@ -22,11 +22,11 @@
             "num_classes": 100
         },
         "pretrained": {
-            "enabled": true,
+            "enabled": false,
             "fpath": "./results/trained_models/baseline"
         },
         "prune": {
-            "enabled": true,
+            "enabled": false,
             "weight_reset": false,
             "method": "weight",
             "sparsity": 50,
@@ -54,7 +54,7 @@
     "optimizer": {
         "algo": "sgd",
         "param": {
-            "lr": 0.15,
+            "lr": 0.1,
             "weight_decay": 1e-5,
             "momentum": 0.9
         }
@@ -63,20 +63,20 @@
         "enabled": true,
         "type": "cosine",
         "param": {
-            "T_max": 2400
+            "T_max": 1200
         }
     },
     "trainhandler": {
         "device": "cuda:1",
         "path": "./results",
-        "name": "testing",
+        "name": "really_baseline",
         "mixup": {
             "enabled": true,
             "alpha": 1.0
         },
         "precision": 16,
         "train": {
-            "num_epochs": 1
+            "num_epochs": 1200
         }
     }
 }
