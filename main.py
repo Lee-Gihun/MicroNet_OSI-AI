@@ -100,8 +100,8 @@ def _count_flops_params(opt, blocks_args, global_params, sparsity=0):
         SPARSITY = sparsity
 
     params, flops = counter.print_summary(SPARSITY, PARAMETER_BITS, ACCUMULATOR_BITS, INPUT_BITS, summarize_blocks=SUMMARIZE_BLOCKS)
-    print('flops: {:.4f}M, params: {:.4f}M'.format(flops, params))
-    print('score: {:.4f} + {:.4f} = {:.4f}'.format(flops/(10490), params/(36.5 * 4), flops/(10490) + params/(36.5 * 4)))
+    print('flops: {:.6f}M, params: {:.6f}M'.format(flops, params))
+    print('score: {:.6f} + {:.6f} = {:.6f}'.format(flops/(10490), params/(36.5 * 4), flops/(10490) + params/(36.5 * 4)))
     print('=' * 50)
 
 def _get_trainhanlder(opt, model, dataloaders, dataset_sizes):    
