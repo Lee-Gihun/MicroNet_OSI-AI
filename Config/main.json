@@ -10,8 +10,9 @@
     },
     "model": {
         "param": {
-            "activation": "swish",
+            "activation": "celu",
             "activation_param": {
+                "alpha": 0.1
             },
             "ghost_bn": true,
             "avail_resource": 2,
@@ -29,18 +30,18 @@
             "enabled": false,
             "weight_reset": false,
             "method": "weight",
-            "sparsity": 50,
-            "rounds": 2,
+            "sparsity": 40,
+            "rounds": 1,
             "gradually": true,
             "norm": true,
-            "num_epochs": 1,
+            "num_epochs": 300,
             "optimizer": {
-                "lr": 0.1,
+                "lr": 0.13,
                 "weight_decay": 1e-5,
                 "momentum": 0.9
             },
             "scheduler": {
-                "T_max": 600
+                "T_max": 300
             }
         }
     },
@@ -54,7 +55,7 @@
     "optimizer": {
         "algo": "sgd",
         "param": {
-            "lr": 0.1,
+            "lr": 0.13,
             "weight_decay": 1e-5,
             "momentum": 0.9
         }
@@ -69,7 +70,7 @@
     "trainhandler": {
         "device": "cuda:1",
         "path": "./results",
-        "name": "really_baseline",
+        "name": "baseline_celu",
         "mixup": {
             "enabled": true,
             "alpha": 1.0
