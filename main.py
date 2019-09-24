@@ -160,15 +160,6 @@ def __get_model_name(opt, round):
         model_name = opt.trainhandler.name + '_pruned_%s_%.2f' % (param.method, param.sparsity) + '_iterative_rounds_%d' % (round + 1)
         
     return model_name
-
-def __update_states(opt, train_handler):
-    params = adapted_weight_decay(train_handler.model, opt.model.prune.optimizer.get('weight_decay', 1e-5))
-    optimizer = OPTIMIZER[opt.optimizer.algo](params, **opt.model.prune.optimizer)
-    train_handler.optimizer.load_state_dict(optimizer.state_dict())
-    if train_handler.scheduler != None:
-        train_handler.scheduler.load_state_dict(SCHEDULER[opt.scheduler.type](optimizer, **opt.model.prune.scheduler).state_dict())
-
-    return train_handler
     
 def __reset_states(opt, train_handler):
     param = opt.model.prune
@@ -179,6 +170,15 @@ def __reset_states(opt, train_handler):
         train_handler.optimizer.load_state_dict(train_handler.init_states['optimizer'])
         if train_handler.scheduler != None:
             train_handler.scheduler.load_state_dict(train_handler.init_states['scheduler'])
+
+    return train_handler
+
+def __update_states(opt, train_handler):
+    params = adapted_weight_decay(train_handler.model, opt.model.prune.optimizer.get('weight_decay', 1e-5))
+    optimizer = OPTIMIZER[opt.optimizer.algo](params, **opt.model.prune.optimizer)
+    train_handler.optimizer.load_state_dict(optimizer.state_dict())
+    if train_handler.scheduler != None:
+        train_handler.scheduler.load_state_dict(SCHEDULER[opt.scheduler.type](optimizer, **opt.model.prune.scheduler).state_dict())
 
     return train_handler
 
