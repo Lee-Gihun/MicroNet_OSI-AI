@@ -21,7 +21,7 @@ from .pruning.layers import *
 
 # Parameters for the entire model (stem, all blocks, and head)
 GlobalParams = collections.namedtuple('GlobalParams', ['dropout_rate',
-    'num_classes', 'activation', 'activation_param', 'resolution_coefficient', 'width_coefficient', 'depth_coefficient',  'depth_divisor', 'min_depth', 'drop_connect_rate', 'image_size'])
+    'num_classes', 'activation', 'activation_param', 'ghost_bn', 'resolution_coefficient', 'width_coefficient', 'depth_coefficient',  'depth_divisor', 'min_depth', 'drop_connect_rate', 'image_size'])
 
 
 # Parameters for an individual model block
@@ -198,7 +198,7 @@ class BlockDecoder(object):
         return block_strings
 
 
-def efficientnet(blocks_args='default', activation='swish', activation_param={}, resolution_coefficient=1.0, width_coefficient=1.0, depth_coefficient=1.0, dropout_rate=0.2, drop_connect_rate=0.2, image_size=None, num_classes=100):
+def efficientnet(blocks_args='default', activation='swish', activation_param={}, ghost_bn=False, resolution_coefficient=1.0, width_coefficient=1.0, depth_coefficient=1.0, dropout_rate=0.2, drop_connect_rate=0.2, image_size=None, num_classes=100):
     """ Creates a efficientnet model. """
     if blocks_args == 'default':
         blocks_args = [
@@ -219,6 +219,7 @@ def efficientnet(blocks_args='default', activation='swish', activation_param={},
         num_classes=num_classes,
         activation=activation,
         activation_param=activation_param,
+        ghost_bn=ghost_bn,
         resolution_coefficient=resolution_coefficient,
         width_coefficient=width_coefficient,
         depth_coefficient=depth_coefficient,

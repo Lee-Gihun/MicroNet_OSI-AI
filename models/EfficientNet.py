@@ -9,6 +9,7 @@ from .utils import (
     round_repeats,
     drop_connect,
     get_same_padding_conv2d,
+    BatchNorm,
     GhostBatchNorm
 )
 
@@ -36,6 +37,8 @@ class MBConvBlock(nn.Module):
             
         self.act = ACTIVATION[global_params.activation](**global_params.activation_param)
         
+        self.bn = GhostBatchNorm if global_params.ghost_bn else BatchNorm
+        
         # Get static or dynamic convolution depending on image size
         Conv2d = get_same_padding_conv2d(image_size=global_params.image_size)
         
@@ -47,8 +50,7 @@ class MBConvBlock(nn.Module):
         
         if self._block_args.expand_ratio != 1:
             self._expand_conv = Conv2d(in_channels=inp, out_channels=oup, kernel_size=1, bias=False)
-            #self._bn0 = GhostBatchNorm(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
-            self._bn0 = GhostBatchNorm(num_features=oup)
+            self._bn0 = self.bn(num_features=oup)
             
         # Depthwise convolution phase
         k = self._block_args.kernel_size
@@ -61,7 +63,7 @@ class MBConvBlock(nn.Module):
         if s >= 2:
             self.pooling = nn.AvgPool2d(3, stride=(s, s), padding=1)
             
-        self._bn1 = GhostBatchNorm(num_features=oup)
+        self._bn1 = self.bn(num_features=oup)
 
         # Squeeze and Excitation layer, if desired
         if self.has_se:
@@ -72,7 +74,7 @@ class MBConvBlock(nn.Module):
         # Output phase
         final_oup = self._block_args.output_filters
         self._project_conv = Conv2d(in_channels=oup, out_channels=final_oup, kernel_size=1, bias=False)
-        self._bn2 = GhostBatchNorm(num_features=final_oup)
+        self._bn2 = self.bn(num_features=final_oup)
 
     def forward(self, inputs, drop_connect_rate=None):
         """
@@ -112,6 +114,8 @@ class EfficientNet(nn.Module):
         self._blocks_args = blocks_args
 
         self.act = ACTIVATION[global_params.activation](**global_params.activation_param)
+        
+        self.bn = GhostBatchNorm if global_params.ghost_bn else BatchNorm
 
         self.upsample = None
         if global_params.resolution_coefficient != 1.0:
@@ -124,7 +128,7 @@ class EfficientNet(nn.Module):
         in_channels = 3  # rgb
         out_channels = round_filters(24, self._global_params)  # number of output channels
         self._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
-        self._bn0 = GhostBatchNorm(num_features=out_channels)
+        self._bn0 = self.bn(num_features=out_channels)
 
         # Build blocks
         self._blocks = nn.ModuleList([])
@@ -148,7 +152,7 @@ class EfficientNet(nn.Module):
         in_channels = block_args.output_filters  # output of final block
         out_channels = round_filters(150, self._global_params)
         self._conv_head = Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
-        self._bn1 = GhostBatchNorm(num_features=out_channels)
+        self._bn1 = self.bn(num_features=out_channels)
 
         # Final linear layer
         self._dropout = self._global_params.dropout_rate

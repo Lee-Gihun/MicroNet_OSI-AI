@@ -64,6 +64,7 @@ def _get_model(opt):
     blocks_args, global_params = efficientnet(blocks_args='default',
                                               activation=param.activation,
                                               activation_param=param.get('activation_param',  {}),
+                                              ghost_bn=param.ghost_bn,
                                               resolution_coefficient=resolution_coefficient,
                                               width_coefficient=param.width_coefficient, 
                                               depth_coefficient=param.depth_coefficient, 

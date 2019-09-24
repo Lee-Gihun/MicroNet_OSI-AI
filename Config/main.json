@@ -13,6 +13,7 @@
             "activation": "swish",
             "activation_param": {
             },
+            "ghost_bn": true,
             "avail_resource": 2,
             "resolution_coefficient": 1.4,
             "width_coefficient": 0.9,
