@@ -31,7 +31,16 @@
             "sparsity": 50,
             "rounds": 2,
             "gradually": true,
-            "norm": true
+            "norm": true,
+            "num_epochs": 1,
+            "optimizer": {
+                "lr": 0.1,
+                "weight_decay": 1e-5,
+                "momentum": 0.9
+            },
+            "scheduler": {
+                "T_max": 600
+            }
         }
     },
     "criterion": {
@@ -53,8 +62,7 @@
         "enabled": true,
         "type": "cosine",
         "param": {
-            "T_max": 2400,
-            "eta_min": 0
+            "T_max": 2400
         }
     },
     "trainhandler": {

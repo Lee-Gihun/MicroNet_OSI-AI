@@ -56,7 +56,7 @@ def weight_prune(model, pruning_perc, prev_masks=None, norm=False, device='cpu')
     return masks
 
 
-def prune_one_filter(model, masks, device='cpu'):
+def prune_one_filter(model, masks, norm, device='cpu'):
     '''
     Pruning one least ``important'' feature map by the scaled l2norm of 
     kernel weights
@@ -87,8 +87,8 @@ def prune_one_filter(model, masks, device='cpu'):
                 value_this_layer = np.square(p_np.sum(axis=1)/p_np.shape[1])
                 
             # normalization (important)
-            value_this_layer = value_this_layer / \
-                np.sqrt(np.square(value_this_layer).sum())
+            if norm:
+                value_this_layer = value_this_layer / np.sqrt(np.square(value_this_layer).sum())
             min_value, min_ind = arg_nonzero_min(list(value_this_layer))
             values.append([min_value, min_ind])
 
@@ -109,7 +109,7 @@ def prune_one_filter(model, masks, device='cpu'):
     return masks
 
 
-def filter_prune(model, pruning_perc, prev_masks=None, device='cpu'):
+def filter_prune(model, pruning_perc, prev_masks=None, norm=True, device='cpu'):
     '''
     Prune filters one by one until reach pruning_perc
     (not iterative pruning)
@@ -121,7 +121,7 @@ def filter_prune(model, pruning_perc, prev_masks=None, device='cpu'):
     current_pruning_perc = 0.
 
     while current_pruning_perc < pruning_perc:
-        masks = prune_one_filter(model, masks, device=device)
+        masks = prune_one_filter(model, masks, norm, device=device)
         model.set_masks(masks)
         current_pruning_perc = prune_rate(model, verbose=False)
         #print('{:.2f} pruned'.format(current_pruning_perc))

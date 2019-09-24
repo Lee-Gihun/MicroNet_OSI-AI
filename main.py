@@ -15,11 +15,29 @@ from train_tools import *
 from models import *
 from counting import *
 
-def _get_dataset(opt):
-    DATASETTER = {'cifar10': cifar_10_setter,
-                  'cifar100': cifar_100_setter}
+DATASETTER = {'cifar10': cifar_10_setter,
+              'cifar100': cifar_100_setter}
     
+CRITERION = {'mse': nn.MSELoss,
+             'cross_entropy': nn.CrossEntropyLoss,
+             'label_smoothing': LabelSmoothingLoss}
+
+OPTIMIZER = {'sgd': optim.SGD,
+             'adam': optim.Adam,
+             'adagrad': optim.Adagrad,
+             'rmsprop': optim.RMSprop,
+             'radam': RAdam}
+
+SCHEDULER = {'step': lr_scheduler.StepLR,
+             'multistep': lr_scheduler.MultiStepLR,
+             'cosine': lr_scheduler.CosineAnnealingLR}
+
+PRUNE_METHOD = {'weight': weight_prune,
+                'filter': filter_prune}
+
+def _get_dataset(opt):
     param = opt.data
+    
     dataloaders, dataset_sizes = DATASETTER[param.dataset](batch_size=param.batch_size, 
                                                            valid_size=param.valid_size,
                                                            root=param.root,
@@ -85,29 +103,15 @@ def _count_flops_params(opt, blocks_args, global_params, sparsity=0):
     print('score: {:.4f} + {:.4f} = {:.4f}'.format(flops/(10490), params/(36.5 * 4), flops/(10490) + params/(36.5 * 4)))
     print('=' * 50)
 
-def _get_trainhanlder(opt, model, dataloaders, dataset_sizes):
-    CRITERION = {'mse': nn.MSELoss,
-                 'cross_entropy': nn.CrossEntropyLoss,
-                 'label_smoothing': LabelSmoothingLoss}
-
-    OPTIMIZER = {'sgd': optim.SGD,
-                 'adam': optim.Adam,
-                 'adagrad': optim.Adagrad,
-                 'rmsprop': optim.RMSprop,
-                 'radam': RAdam}
-
-    SCHEDULER = {'step': lr_scheduler.StepLR,
-                 'multistep': lr_scheduler.MultiStepLR,
-                 'cosine': lr_scheduler.CosineAnnealingLR}
+def _get_trainhanlder(opt, model, dataloaders, dataset_sizes):    
+    criterion = CRITERION[opt.criterion.algo](**opt.criterion.param)
     
-    criterion = CRITERION[opt.criterion.algo](**opt.criterion.param) if opt.criterion.get('param') else CRITERION[opt.criterion.algo]()
-    
-    params = adapted_weight_decay(model, opt.optimizer.param.weight_decay)
-    optimizer = OPTIMIZER[opt.optimizer.algo](params, **opt.optimizer.param) if opt.optimizer.get('param') else OPTIMIZER[opt.optimizer.algo](params)
-    #optimizer = OPTIMIZER[opt.optimizer.algo](model.parameters(), **opt.optimizer.param) if opt.optimizer.get("param") else OPTIMIZER[opt.optimizer.algo](model.parameters())
+    params = adapted_weight_decay(model, opt.optimizer.param.get('weight_decay', 1e-5))
+    optimizer = OPTIMIZER[opt.optimizer.algo](params, **opt.optimizer.param)
+    #optimizer = OPTIMIZER[opt.optimizer.algo](model.parameters(), **opt.optimizer.param)
     
     if opt.scheduler.enabled:
-        scheduler = SCHEDULER[opt.scheduler.type](optimizer, **opt.scheduler.param) if opt.scheduler.get('param') else SCHEDULER[opt.scheduler.type](optimizer)
+        scheduler = SCHEDULER[opt.scheduler.type](optimizer, **opt.scheduler.param)
     else:
         scheduler = None
         
@@ -137,11 +141,9 @@ def __get_sparsity(opt, round):
 
     return round_sparsity
     
-def __get_masks(opt, train_handler, round_sparsity, masks):
-    PRUNE_METHOD = {'weight': weight_prune,
-                    'filter': filter_prune}
-    
+def __get_masks(opt, train_handler, round_sparsity, masks):    
     param = opt.model.prune
+    
     if not masks:
         masks = PRUNE_METHOD[param.method](train_handler.model, round_sparsity, norm=param.norm, device=opt.trainhandler.device)
     else:
@@ -159,7 +161,16 @@ def __get_model_name(opt, round):
         
     return model_name
 
-def __reset_weight(opt, train_handler):
+def __update_states(opt, train_handler):
+    params = adapted_weight_decay(train_handler.model, opt.model.prune.optimizer.get('weight_decay', 1e-5))
+    optimizer = OPTIMIZER[opt.optimizer.algo](params, **opt.model.prune.optimizer)
+    train_handler.optimizer.load_state_dict(optimizer.state_dict())
+    if train_handler.scheduler != None:
+        train_handler.scheduler.load_state_dict(SCHEDULER[opt.scheduler.type](optimizer, **opt.model.prune.scheduler).state_dict())
+
+    return train_handler
+    
+def __reset_states(opt, train_handler):
     param = opt.model.prune
     
     if param.weight_reset:
@@ -173,6 +184,7 @@ def __reset_weight(opt, train_handler):
 
 def _pruning(opt, train_handler, blocks_args, global_params):
     masks = None
+        
     for round in range(opt.model.prune.rounds):
         round_sparsity = __get_sparsity(opt, round)
         _count_flops_params(opt, blocks_args, global_params, sparsity=round_sparsity)
@@ -186,9 +198,10 @@ def _pruning(opt, train_handler, blocks_args, global_params):
 
         train_handler.test_model(pretrained=True)
         
-        train_handler = __reset_weight(opt, train_handler)
+        train_handler = __reset_states(opt, train_handler)
+        train_handler = __update_states(opt, train_handler)
         
-        train_handler.train_model(num_epochs=opt.trainhandler.train.num_epochs)
+        train_handler.train_model(num_epochs=opt.model.prune.num_epochs)
         train_handler.test_model()
 
 def run(opt):
