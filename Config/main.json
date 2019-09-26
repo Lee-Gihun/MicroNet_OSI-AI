@@ -2,49 +2,12 @@
     "data": {
         "dataset": "cifar100",
         "batch_size": 128,
-        "valid_size": 0,
+        "valid_size": 5000,
         "fixed_valid": true,
         "autoaugment": true,
         "aug_policy": "cifar100",
-        "root": "./data/cifar100/valid0_batch128_cifar100_policy"
-    },
-    "model": {
-        "param": {
-            "activation": "celu",
-            "activation_param": {
-                "alpha": 0.1
-            },
-            "ghost_bn": true,
-            "avail_resource": 2,
-            "resolution_coefficient": 1.4,
-            "width_coefficient": 0.9,
-            "depth_coefficient": 1.0,
-            "image_size": 32,
-            "num_classes": 100
-        },
-        "pretrained": {
-            "enabled": false,
-            "fpath": "./results/trained_models/baseline"
-        },
-        "prune": {
-            "enabled": false,
-            "weight_reset": false,
-            "method": "weight",
-            "sparsity": 40,
-            "rounds": 1,
-            "gradually": true,
-            "norm": true,
-            "num_epochs": 300,
-            "optimizer": {
-                "lr": 0.13,
-                "weight_decay": 1e-5,
-                "momentum": 0.9
-            },
-            "scheduler": {
-                "T_max": 300
-            }
-        }
-    },
+        "root": "./data/cifar100/valid5000_batch128_cifar100_policy"
+    },    
     "criterion": {
         "algo": "label_smoothing",
         "param": {
@@ -55,7 +18,7 @@
     "optimizer": {
         "algo": "sgd",
         "param": {
-            "lr": 0.13,
+            "lr": 0.1,
             "weight_decay": 1e-5,
             "momentum": 0.9
         }
@@ -70,7 +33,7 @@
     "trainhandler": {
         "device": "cuda:1",
         "path": "./results",
-        "name": "baseline_celu",
+        "name": "testing",
         "mixup": {
             "enabled": true,
             "alpha": 1.0
@@ -78,6 +41,69 @@
         "precision": 16,
         "train": {
             "num_epochs": 1200
+        }
+    },
+    "model": {
+        "param": {
+            "activation": "swish",
+            "activation_param": {
+            },
+            "ghost_bn": true,
+            "avail_resource": 2,
+            "resolution_coefficient": 1.4,
+            "width_coefficient": 0.9,
+            "depth_coefficient": 1.0,
+            "image_size": 32,
+            "num_classes": 100
+        },
+        "pretrained": {
+            "enabled": true,
+            "sparsity": 40,
+            "fpath": "./results/trained_models/baseline"
+        },
+        "prune": {
+            "enabled": false,
+            "weight_reset": false,
+            "method": "weight",
+            "sparsity": 50,
+            "rounds": 5,
+            "gradually": true,
+            "norm": true,
+            "num_epochs": 300,
+            "optimizer": {
+                "lr": 0.15,
+                "weight_decay": 1e-5,
+                "momentum": 0.9
+            },
+            "scheduler": {
+                "T_max": 300
+            }
+        }
+    },
+    "early_exit": {
+        "enabled": true,
+        "name": "_early_exit",
+        "param": {
+            "in_channels": 48,
+            "final_channels": 150,
+            "thres": 1,
+            "blocks_idx": 4
+        },
+        "criterion": {
+            "label_smoothing": true
+        },
+        "optimizer": {
+            "lr": 0.13,
+            "weight_decay": 1e-5,
+            "momentum": 0.9
+        },
+        "scheduler": {
+            "T_max": 300
+        },
+        "num_epochs": 1,
+        "pretrained": {
+            "enabled": false,
+            "fpath": "./results/trained_models/testing_early_exit"
         }
     }
 }

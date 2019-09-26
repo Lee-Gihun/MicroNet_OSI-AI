@@ -1,4 +1,6 @@
-__all__ = ['AverageMeter', 'accuracy', 'accuracy_stat']
+import torch
+
+__all__ = ['AverageMeter', 'accuracy', 'accuracy_stat', 'early_exit_pred_mark']
 
 class AverageMeter(object):
     """
@@ -50,3 +52,11 @@ def accuracy_stat(topk):
     return: average, maximum
     """
     return (sum(topk) / len(topk)), (max(topk))
+
+def early_exit_pred_mark(output):
+    if len(output) == 2:
+        _, pred = torch.max(output[0], 1)
+        return pred, output[1]
+    
+    _, pred = torch.max(output, 1)
+    return pred

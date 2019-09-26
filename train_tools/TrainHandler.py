@@ -10,7 +10,7 @@ import os
 __all__ = ['TrainHandler']
 
 class TrainHandler():
-    def __init__(self, model, dataloaders, dataset_sizes, criterion, optimizer, scheduler=None, device=None, path='./results', mixup=False, alpha=1.0, precision=32, prune=False):
+    def __init__(self, model, dataloaders, dataset_sizes, criterion, optimizer, scheduler=None, device=None, path='./results', mixup=False, alpha=1.0, precision=32, prune=False, early_exit=False):
         # If device is None, get default device
         if device == None:
             self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -30,6 +30,7 @@ class TrainHandler():
         self.mixup         = mixup
         self.alpha         = alpha
         self.prune         = prune
+        self.early_exit    = early_exit
         
         # Set model precision if precision is specified
         self.precision = precision
@@ -106,10 +107,13 @@ class TrainHandler():
         self.result_log['train_acc']  += train_accs[-log_freq:]
         self.result_log['valid_acc']  += valid_accs[-log_freq:]
 
-    def _print_train_stat(self, epoch, num_epochs, epoch_elapse, train_loss, train_acc, valid_loss, valid_acc, learning_rate):
+    def _print_train_stat(self, epoch, num_epochs, epoch_elapse, train_loss, train_acc, valid_loss, valid_acc, learning_rate, early_exit=False, valid_early_exits=None):
         print('[Epoch {}/{}] Elapsed {}s/it'.format(epoch, num_epochs, epoch_elapse))
         print('[{}] Loss - {:.4f}, Acc - {:2.2f}%, Learning Rate - {}'.format('Train', train_loss, train_acc * 100, learning_rate))
         print('[{}] Loss - {:.4f}, Acc - {:2.2f}%'.format('Valid', valid_loss, valid_acc * 100))
+        if early_exit:
+            valid_early_exit = valid_early_exits[-1][1]
+            print('[{}] Early_Exit percentage - {:.4f}'.format('Valid', valid_early_exit * 100))
         #print('Memory Usage: {:.2f} MB'.format(torch.cuda.memory_allocated(self.device_idx) / 1024 / 1024))
         #print('Memory Cached: {:.2f} MB'.format(torch.cuda.memory_cached(self.device_idx) / 1024 / 1024))
         #print('Max Memory Usage: {:.2f} MB'.format(torch.cuda.max_memory_allocated(self.device_idx) / 1024 / 1024))
@@ -152,6 +156,8 @@ class TrainHandler():
 
         running_loss = 0.0
         running_correct = 0.0
+        if self.early_exit:
+            early_exit = 0.0
 
         for inputs, labels in self.dataloaders[phase]:
             inputs = inputs.to(self.device)
@@ -176,6 +182,10 @@ class TrainHandler():
                     preds = self.prediction(outputs)
                     loss = self.__mixup_criterion(self.criterion, outputs, labels_a, labels_b, lam)
                     
+                if self.early_exit and phase != 'train':
+                    preds, exit_mark = preds[0], preds[1]
+                    early_exit += torch.sum(exit_mark == 1)
+                    
                 if phase == 'train':
                     # Backward pass
                     loss.backward()
@@ -188,10 +198,16 @@ class TrainHandler():
             running_correct += torch.sum(preds == labels.data)
 
         if self.dataset_sizes[phase] == 0:
+            if self.early_exit and phase != 'train':
+                return 0.0, 0.0, 0.0
+            
             return 0.0, 0.0
             
         epoch_loss = running_loss / self.dataset_sizes[phase]
         epoch_acc  = (running_correct.double() / self.dataset_sizes[phase]).item()
+        if self.early_exit and phase != 'train':
+            epoch_early_exit = (early_exit / self.dataset_sizes[phase]).item()
+            return epoch_loss, epoch_acc, epoch_early_exit
 
         return epoch_loss, epoch_acc
 
@@ -202,6 +218,8 @@ class TrainHandler():
 
         running_loss = 0.0
         running_correct = 0.0
+        if self.early_exit:
+            early_exit = 0.0
 
         for inputs, labels in self.dataloaders['test']:
             inputs = inputs.to(self.device)
@@ -220,6 +238,12 @@ class TrainHandler():
                 outputs = self.model(inputs)
                 preds = self.prediction(outputs)
                 loss = self.criterion(outputs, labels)
+                
+                if self.early_exit:
+                    preds, exit_mark = preds[0], preds[1]
+                    early_exit += torch.sum(exit_mark == 1)
+                    
+                    outputs = outputs[0]
 
                 # Get topk accuracy
                 topk_acc = accuracy(outputs.data, labels.data, topk=topk)
@@ -234,13 +258,20 @@ class TrainHandler():
         test_loss = running_loss / self.dataset_sizes['test']
         test_acc  = (running_correct.double() / self.dataset_sizes['test']).item()
         topk_avg = [topk.avg for topk in avg_meter]
+        if self.early_exit:
+            test_early_exit = (early_exit / self.dataset_sizes['test']).item()
+            return test_loss, test_acc, topk_avg, test_early_exit
 
         return test_loss, test_acc, topk_avg
 
 
-    def train_model(self, num_epochs=200, valid_freq=1, log_freq=1, print_freq=1, early_stop=False, patience=10, verbose=False):
+    def train_model(self, num_epochs=200, valid_freq=1, log_freq=1, print_freq=1, early_stop=False, patience=10, verbose=False, seed=None):
+        if seed is not None:
+            torch.manual_seed(seed)
+            
         since = time.time()
         train_losses, valid_losses, train_accs, valid_accs = [], [], [], []
+        valid_early_exits = [(0, 0.0)]
         self.num_epochs = num_epochs
 
         if early_stop:
@@ -258,7 +289,11 @@ class TrainHandler():
             epoch_start = time.time()
             train_loss, train_acc = self._epoch_phase('train')
             if epoch % valid_freq == 0:
-                valid_loss, valid_acc = self._epoch_phase('valid')
+                if self.early_exit:
+                    valid_loss, valid_acc, valid_early_exit = self._epoch_phase('valid')
+                else:
+                    valid_loss, valid_acc = self._epoch_phase('valid')
+                    
             epoch_elapse = round(time.time() - epoch_start, 3)
             
             # Save loss and accuracy statistics
@@ -268,6 +303,8 @@ class TrainHandler():
             if epoch % valid_freq == 0:
                 valid_losses.append((epoch, valid_loss))
                 valid_accs.append((epoch, valid_acc))
+                if self.early_exit:
+                    valid_early_exits.append((epoch, valid_early_exit))
                 
             # Update the best validation accuracy
             if valid_loss <= best_loss:
@@ -281,7 +318,7 @@ class TrainHandler():
 
             # Print stat based on print_freq
             if epoch % print_freq == 0:
-                self._print_train_stat(epoch, self.num_epochs, epoch_elapse, train_loss, train_acc, valid_loss, valid_acc, self._get_learning_rate())
+                self._print_train_stat(epoch, self.num_epochs, epoch_elapse, train_loss, train_acc, valid_loss, valid_acc, self._get_learning_rate(), early_exit=self.early_exit, valid_early_exits=valid_early_exits)
 
             if early_stop:
                 early_stopping(valid_loss, self.model)
@@ -305,7 +342,10 @@ class TrainHandler():
             self.device = device
             self.model.to(device)
 
-        test_loss, test_acc, topk_avg = self._test_phase(topk)
+        if self.early_exit:
+            test_loss, test_acc, topk_avg, test_early_exit = self._test_phase(topk)
+        else:
+            test_loss, test_acc, topk_avg = self._test_phase(topk)
 
         # Test result
         print('[{}] Loss - {:.4f}, Acc - {:2.2f}%'.format('Test', test_loss, test_acc * 100))
@@ -328,6 +368,9 @@ class TrainHandler():
             self.result_log = self.__init_result_log()
             self.model_info['performance'] = None
 
+        if self.early_exit:
+            return test_loss, test_acc, test_early_exit
+        
         return test_loss, test_acc
 
     def set_name(self, name):
@@ -346,14 +389,7 @@ class TrainHandler():
         self.model_info['memo'] = memo
 
     def reset_model_state(self):
-        model_dict = self.model.state_dict()
-
-        # 1. filter out unnecessary keys
-        filtered_dict = {k: v for k, v in self.init_states['model'].items() if k in model_dict}
-        # 2. overwrite entries in the existing state dict 
-        model_dict.update(filtered_dict)
-        # 3. load the new state dict
-        self.model.load_state_dict(model_dict)
+        self.model.load_state_dict(self.init_states['model'], strict=False)
 
         # Load saved initial state file
         #self.model.load_state_dict(self.init_states['model'])

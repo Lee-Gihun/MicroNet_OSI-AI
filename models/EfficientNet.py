@@ -29,7 +29,7 @@ class MBConvBlock(nn.Module):
         has_se (bool): Whether the block contains a Squeeze and Excitation layer.
     """
 
-    def __init__(self, block_args, global_params, maksed=False):
+    def __init__(self, block_args, global_params):
         super().__init__()
         self._block_args = block_args
         self.has_se = (self._block_args.se_ratio is not None) and (0 < self._block_args.se_ratio <= 1)
@@ -41,8 +41,6 @@ class MBConvBlock(nn.Module):
         
         # Get static or dynamic convolution depending on image size
         Conv2d = get_same_padding_conv2d(image_size=global_params.image_size)
-        
-        self.ops = Conv2d
 
         # Expansion phase
         inp = self._block_args.input_filters  # number of input channels

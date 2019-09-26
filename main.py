@@ -5,6 +5,7 @@ import sys
 import math
 import copy
 import torch
+import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
@@ -134,11 +135,14 @@ def _get_trainhanlder(opt, model, dataloaders, dataset_sizes):
 
 def __get_sparsity(opt, round):
     param = opt.model.prune
+    prev_sparsity = opt.model.pretrained.sparsity if opt.model.pretrained.enabled else 0
+    
+    assert param.sparsity > prev_sparsity
     
     if param.gradually:
-        round_sparsity = param.sparsity * ((1 / param.rounds) * (round + 1))
+        round_sparsity = prev_sparsity + (param.sparsity - prev_sparsity) * ((1 / param.rounds) * (round + 1))
     else:
-        round_sparsity = math.pow(param.sparsity, ((1 / param.rounds) * (round + 1)))
+        round_sparsity = prev_sparsity + math.pow((param.sparsity - prev_sparsity), ((1 / param.rounds) * (round + 1)))
 
     return round_sparsity
     
@@ -174,13 +178,12 @@ def __reset_states(opt, train_handler):
 
     return train_handler
 
-def __update_states(opt, train_handler):
-    params = adapted_weight_decay(train_handler.model, opt.model.prune.optimizer.get('weight_decay', 1e-5))
-    optimizer = OPTIMIZER[opt.optimizer.algo](params, **opt.model.prune.optimizer)
-    train_handler.optimizer.load_state_dict(optimizer.state_dict())
+def __update_states(opt, train_handler, optimizer_param, scheduler_param):
+    params = adapted_weight_decay(train_handler.model, optimizer_param.get('weight_decay', 1e-5))
+    optimizer = OPTIMIZER[opt.optimizer.algo](params, **optimizer_param)
+    train_handler.optimizer = optimizer
     if train_handler.scheduler != None:
-        train_handler.scheduler.load_state_dict(SCHEDULER[opt.scheduler.type](optimizer, **opt.model.prune.scheduler).state_dict())
-
+        train_handler.scheduler = SCHEDULER[opt.scheduler.type](optimizer, **scheduler_param)        
     return train_handler
 
 def _pruning(opt, train_handler, blocks_args, global_params):
@@ -200,10 +203,67 @@ def _pruning(opt, train_handler, blocks_args, global_params):
         train_handler.test_model(pretrained=True)
         
         train_handler = __reset_states(opt, train_handler)
-        train_handler = __update_states(opt, train_handler)
+        train_handler = __update_states(opt, train_handler, opt.model.prune.optimizer, opt.model.prune.scheduler)
         
         train_handler.train_model(num_epochs=opt.model.prune.num_epochs)
         train_handler.test_model()
+
+def __get_early_exit_model(opt, train_handler, blocks_args, global_params):
+    param = opt.early_exit.param
+    
+    early_exit = get_early_exit(in_channels=param.in_channels, final_channels=param.final_channels, thres=param.thres, blocks_idx=param.blocks_idx, device=opt.trainhandler.device)
+    early_exit_model = EfficientNet_EarlyExiting(blocks_args, global_params, early_exit)
+    
+    for params in train_handler.model.parameters():
+        params.requires_grad = False
+    for params in early_exit_model.parameters():
+        params.requires_grad = True
+        
+    early_exit_model.load_state_dict(train_handler.model.state_dict(), strict=False)
+    train_handler.model = early_exit_model.to(opt.trainhandler.device)
+    
+    if train_handler.precision == 16:
+        train_handler.model.half()
+    
+    return train_handler
+
+def __set_trainhandler(opt, train_handler):
+    train_handler.early_exit = True
+    train_handler.set_criterion(OverHaulLoss(**opt.early_exit.criterion))
+    train_handler.set_prediction(early_exit_pred_mark)
+    train_handler.set_name(train_handler.name + opt.early_exit.name)
+    train_handler = __update_states(opt, train_handler, opt.early_exit.optimizer, opt.early_exit.scheduler)
+
+    train_handler.init_states['optimizer'] = copy.deepcopy(train_handler.optimizer.state_dict())
+    train_handler.init_states['scheduler'] = copy.deepcopy(train_handler.scheduler.state_dict())
+    train_handler.init_states['model'] = copy.deepcopy(train_handler.model.state_dict())
+    
+    return train_handler
+
+def _early_exit(opt, train_handler, blocks_args, global_params):
+    train_handler = __get_early_exit_model(opt, train_handler, blocks_args, global_params)
+    
+    train_handler = __set_trainhandler(opt, train_handler)
+    # counting
+    #_count_flops_params(opt, blocks_args, global_params, sparsity=0)
+    
+    # pretrained
+    if not opt.early_exit.pretrained.enabled:
+        train_handler.train_model(num_epochs=opt.early_exit.num_epochs)
+        train_handler.test_model()
+    else:
+        initial_model = torch.load(os.path.join(opt.early_exit.pretrained.fpath, 'initial_model.pth'), map_location=opt.trainhandler.device)
+        train_handler.init_states['model'] = copy.deepcopy(initial_model)
+        
+        fpath = opt.early_exit.pretrained.fpath
+                    
+        pretrained_dict = torch.load(os.path.join(fpath, 'trained_model.pth'), map_location=opt.trainhandler.device)
+        train_handler.model.load_state_dict(pretrained_dict, strict=False)
+        
+        train_handler.test_model(pretrained=True)
+        
+    # TODO: pruning about early_exit
+    # for pruning, init_states update necessary
 
 def run(opt):
     dataloaders, dataset_sizes = _get_dataset(opt)
@@ -221,21 +281,17 @@ def run(opt):
         train_handler.init_states['model'] = copy.deepcopy(initial_model)
         
         fpath = opt.model.pretrained.fpath
-        if 'pruned' in fpath:
-            masks = []
-            for p in train_handler.model.parameters():
-                if len(p.data.size()) != 1:
-                    p_np = p.data.cpu().numpy()
-                    masks.append(torch.from_numpy(np.ones(p_np.shape)).type(p.dtype).to(train_handler.device))
-                    train_handler.model.set_masks(masks)
                     
         pretrained_dict = torch.load(os.path.join(fpath, 'trained_model.pth'), map_location=opt.trainhandler.device)
-        train_handler.model.load_state_dict(pretrained_dict)
+        train_handler.model.load_state_dict(pretrained_dict, strict=False)
 
     train_handler.test_model(pretrained=opt.model.pretrained.enabled)
     
     if opt.model.prune.enabled:
         _pruning(opt, train_handler, blocks_args, global_params)
+        
+    if opt.early_exit.enabled:
+        _early_exit(opt, train_handler, blocks_args, global_params)
         
 if __name__ == "__main__":
     opt = ConfLoader(sys.argv[1]).opt
