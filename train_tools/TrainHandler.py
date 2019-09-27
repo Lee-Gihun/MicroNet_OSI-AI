@@ -113,7 +113,7 @@ class TrainHandler():
         print('[{}] Loss - {:.4f}, Acc - {:2.2f}%'.format('Valid', valid_loss, valid_acc * 100))
         if early_exit:
             valid_early_exit = valid_early_exits[-1][1]
-            print('[{}] Early_Exit percentage - {:.4f}'.format('Valid', valid_early_exit * 100))
+            print('[{}] Early_Exit percentage - {:.2f}'.format('Valid', valid_early_exit * 100))
         #print('Memory Usage: {:.2f} MB'.format(torch.cuda.memory_allocated(self.device_idx) / 1024 / 1024))
         #print('Memory Cached: {:.2f} MB'.format(torch.cuda.memory_cached(self.device_idx) / 1024 / 1024))
         #print('Max Memory Usage: {:.2f} MB'.format(torch.cuda.max_memory_allocated(self.device_idx) / 1024 / 1024))
@@ -265,10 +265,7 @@ class TrainHandler():
         return test_loss, test_acc, topk_avg
 
 
-    def train_model(self, num_epochs=200, valid_freq=1, log_freq=1, print_freq=1, early_stop=False, patience=10, verbose=False, seed=None):
-        if seed is not None:
-            torch.manual_seed(seed)
-            
+    def train_model(self, num_epochs=200, valid_freq=1, log_freq=1, print_freq=1, early_stop=False, patience=10, verbose=False):
         since = time.time()
         train_losses, valid_losses, train_accs, valid_accs = [], [], [], []
         valid_early_exits = [(0, 0.0)]

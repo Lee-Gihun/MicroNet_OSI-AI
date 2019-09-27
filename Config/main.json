@@ -2,11 +2,11 @@
     "data": {
         "dataset": "cifar100",
         "batch_size": 128,
-        "valid_size": 5000,
+        "valid_size": 0,
         "fixed_valid": true,
         "autoaugment": true,
         "aug_policy": "cifar100",
-        "root": "./data/cifar100/valid5000_batch128_cifar100_policy"
+        "root": "./data/cifar100/valid0_batch128_cifar100_policy"
     },    
     "criterion": {
         "algo": "label_smoothing",
@@ -18,7 +18,7 @@
     "optimizer": {
         "algo": "sgd",
         "param": {
-            "lr": 0.1,
+            "lr": 0.13,
             "weight_decay": 1e-5,
             "momentum": 0.9
         }
@@ -31,9 +31,10 @@
         }
     },
     "trainhandler": {
+        "seed": 2019,
         "device": "cuda:1",
         "path": "./results",
-        "name": "testing",
+        "name": "baseline_already_50",
         "mixup": {
             "enabled": true,
             "alpha": 1.0
@@ -58,30 +59,30 @@
         },
         "pretrained": {
             "enabled": true,
-            "sparsity": 40,
-            "fpath": "./results/trained_models/baseline"
+            "sparsity": 50,
+            "fpath": "./results/trained_models/baseline_pruned_weight_50.00_iterative_rounds_5"
         },
         "prune": {
-            "enabled": false,
+            "enabled": true,
             "weight_reset": false,
             "method": "weight",
-            "sparsity": 50,
-            "rounds": 5,
+            "sparsity": 70,
+            "rounds": 4,
             "gradually": true,
             "norm": true,
-            "num_epochs": 300,
+            "num_epochs": 600,
             "optimizer": {
-                "lr": 0.15,
+                "lr": 0.13,
                 "weight_decay": 1e-5,
                 "momentum": 0.9
             },
             "scheduler": {
-                "T_max": 300
+                "T_max": 600
             }
         }
     },
     "early_exit": {
-        "enabled": true,
+        "enabled": false,
         "name": "_early_exit",
         "param": {
             "in_channels": 48,

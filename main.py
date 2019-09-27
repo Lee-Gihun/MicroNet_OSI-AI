@@ -15,7 +15,7 @@ from data_utils import *
 from train_tools import *
 from models import *
 from counting import *
-
+    
 DATASETTER = {'cifar10': cifar_10_setter,
               'cifar100': cifar_100_setter}
     
@@ -295,5 +295,8 @@ def run(opt):
         
 if __name__ == "__main__":
     opt = ConfLoader(sys.argv[1]).opt
+
+    if opt.trainhandler.get('seed', None):
+        torch.manual_seed(opt.trainhandler.seed)
     
     run(opt)
