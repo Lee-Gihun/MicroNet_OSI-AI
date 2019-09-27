@@ -85,10 +85,10 @@
         "enabled": false,
         "name": "_early_exit",
         "param": {
-            "in_channels": 48,
             "final_channels": 150,
-            "thres": 1,
-            "blocks_idx": 4
+            "use_bias": false,
+            "thres": 0,
+            "blocks_idx": 3
         },
         "criterion": {
             "label_smoothing": true

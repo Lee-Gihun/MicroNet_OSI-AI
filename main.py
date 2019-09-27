@@ -80,7 +80,7 @@ def _get_model(opt):
     
     return model, blocks_args, global_params
 
-def _count_flops_params(opt, blocks_args, global_params, sparsity=0):
+def _count_params_flops(opt, blocks_args, global_params, sparsity=0):
     # define different value according to your structure
     conv_stem = {'kernel': 3, 'stride': 2, 'out_channel': 24}
     last_ops = {'out_channel': 150, 'num_classes': global_params.num_classes}
@@ -100,10 +100,12 @@ def _count_flops_params(opt, blocks_args, global_params, sparsity=0):
     else:
         SPARSITY = sparsity
 
-    params, flops = counter.print_summary(SPARSITY, PARAMETER_BITS, ACCUMULATOR_BITS, INPUT_BITS, summarize_blocks=SUMMARIZE_BLOCKS)
+    params, flops, blocks_params_flops, blocks_res_channel = counter.print_summary(SPARSITY, PARAMETER_BITS, ACCUMULATOR_BITS, INPUT_BITS, summarize_blocks=SUMMARIZE_BLOCKS)
     print('flops: {:.6f}M, params: {:.6f}M'.format(flops, params))
     print('score: {:.6f} + {:.6f} = {:.6f}'.format(flops/(10490), params/(36.5 * 4), flops/(10490) + params/(36.5 * 4)))
     print('=' * 50)
+    
+    return blocks_params_flops, blocks_res_channel
 
 def _get_trainhanlder(opt, model, dataloaders, dataset_sizes):    
     criterion = CRITERION[opt.criterion.algo](**opt.criterion.param)
@@ -191,7 +193,7 @@ def _pruning(opt, train_handler, blocks_args, global_params):
         
     for round in range(opt.model.prune.rounds):
         round_sparsity = __get_sparsity(opt, round)
-        _count_flops_params(opt, blocks_args, global_params, sparsity=round_sparsity)
+        blocks_params_flops, _ = _count_params_flops(opt, blocks_args, global_params, sparsity=round_sparsity)
 
         masks = __get_masks(opt, train_handler, round_sparsity, masks)
         train_handler.model.set_masks(masks)
@@ -208,10 +210,12 @@ def _pruning(opt, train_handler, blocks_args, global_params):
         train_handler.train_model(num_epochs=opt.model.prune.num_epochs)
         train_handler.test_model()
 
-def __get_early_exit_model(opt, train_handler, blocks_args, global_params):
+    return blocks_params_flops
+
+def __get_early_exit_model(opt, train_handler, blocks_args, global_params, blocks_res_channel):
     param = opt.early_exit.param
     
-    early_exit = get_early_exit(in_channels=param.in_channels, final_channels=param.final_channels, thres=param.thres, blocks_idx=param.blocks_idx, device=opt.trainhandler.device)
+    early_exit = get_early_exit(in_channels=blocks_res_channel[param.blocks_idx+1][1], final_channels=param.final_channels, input_size=blocks_res_channel[param.blocks_idx+1][0], use_bias=param.use_bias, thres=param.thres, blocks_idx=param.blocks_idx, device=opt.trainhandler.device)
     early_exit_model = EfficientNet_EarlyExiting(blocks_args, global_params, early_exit)
     
     for params in train_handler.model.parameters():
@@ -225,7 +229,7 @@ def __get_early_exit_model(opt, train_handler, blocks_args, global_params):
     if train_handler.precision == 16:
         train_handler.model.half()
     
-    return train_handler
+    return train_handler, early_exit
 
 def __set_trainhandler(opt, train_handler):
     train_handler.early_exit = True
@@ -240,17 +244,48 @@ def __set_trainhandler(opt, train_handler):
     
     return train_handler
 
-def _early_exit(opt, train_handler, blocks_args, global_params):
-    train_handler = __get_early_exit_model(opt, train_handler, blocks_args, global_params)
+def _count_early_exit_params_flops(global_params, early_exit, sparsity, blocks_params_flops, exit_percent):
+    counter = MicroNetCounter(global_params=global_params, early_exit=early_exit)
+
+    # Constants
+    INPUT_BITS = opt.trainhandler.precision
+    ACCUMULATOR_BITS = opt.trainhandler.precision
+    PARAMETER_BITS = INPUT_BITS
+    SUMMARIZE_BLOCKS = True
+    if sparsity != 0:
+        SPARSITY = sparsity / 100
+    else:
+        SPARSITY = sparsity
+
+    params, flops, _, _ = counter.print_summary(SPARSITY, PARAMETER_BITS, ACCUMULATOR_BITS, INPUT_BITS, summarize_blocks=SUMMARIZE_BLOCKS)
+    
+    total_params = params
+    exit_flops, not_exit_flops = flops, flops
+    
+    exit = False
+    for idx, (block_params, block_flops) in enumerate(blocks_params_flops):
+        total_params += block_params
+        not_exit_flops += block_flops
+        if not exit:
+            exit_flops += block_flops
+            
+        # when idx is 0, it is 'conv_stem'
+        if early_exit.blocks_idx == (idx - 1):
+            exit = True
+
+    total_flops = (exit_flops * exit_percent) + (not_exit_flops * (1 - exit_percent))
+    print('flops: {:.6f}M, params: {:.6f}M'.format(total_flops, total_params))
+    print('score: {:.6f} + {:.6f} = {:.6f}'.format(total_flops/(10490), total_params/(36.5 * 4), total_flops/(10490) + total_params/(36.5 * 4)))
+    print('=' * 50)
+
+def _early_exit(opt, train_handler, blocks_args, global_params, blocks_params_flops, blocks_res_channel):
+    train_handler, early_exit = __get_early_exit_model(opt, train_handler, blocks_args, global_params, blocks_res_channel)
     
     train_handler = __set_trainhandler(opt, train_handler)
-    # counting
-    #_count_flops_params(opt, blocks_args, global_params, sparsity=0)
-    
     # pretrained
     if not opt.early_exit.pretrained.enabled:
         train_handler.train_model(num_epochs=opt.early_exit.num_epochs)
-        train_handler.test_model()
+        _, _, exit_percent = train_handler.test_model()
     else:
         initial_model = torch.load(os.path.join(opt.early_exit.pretrained.fpath, 'initial_model.pth'), map_location=opt.trainhandler.device)
         train_handler.init_states['model'] = copy.deepcopy(initial_model)
@@ -260,23 +295,28 @@ def _early_exit(opt, train_handler, blocks_args, global_params):
         pretrained_dict = torch.load(os.path.join(fpath, 'trained_model.pth'), map_location=opt.trainhandler.device)
         train_handler.model.load_state_dict(pretrained_dict, strict=False)
         
-        train_handler.test_model(pretrained=True)
+        _, _, exit_percent = train_handler.test_model(pretrained=True)
+        
+    # counting
+    _count_early_exit_params_flops(global_params, early_exit, 0, blocks_params_flops, exit_percent)
         
     # TODO: pruning about early_exit
-    # for pruning, init_states update necessary
 
 def run(opt):
     dataloaders, dataset_sizes = _get_dataset(opt)
 
     model, blocks_args, global_params = _get_model(opt)
 
-    _count_flops_params(opt, blocks_args, global_params)
+    blocks_params_flops, blocks_res_channel = _count_params_flops(opt, blocks_args, global_params)
         
     train_handler = _get_trainhanlder(opt, model, dataloaders, dataset_sizes)
     
     if not opt.model.pretrained.enabled:
         train_handler.train_model(num_epochs=opt.trainhandler.train.num_epochs)
     else:
+        print('Pretrained model is loaded')
+        print('=' * 50)
+        blocks_params_flops, blocks_res_channel = _count_params_flops(opt, blocks_args, global_params, sparsity=opt.model.pretrained.sparsity)
         initial_model = torch.load(os.path.join(opt.model.pretrained.fpath, 'initial_model.pth'), map_location=opt.trainhandler.device)
         train_handler.init_states['model'] = copy.deepcopy(initial_model)
         
@@ -288,10 +328,10 @@ def run(opt):
     train_handler.test_model(pretrained=opt.model.pretrained.enabled)
     
     if opt.model.prune.enabled:
-        _pruning(opt, train_handler, blocks_args, global_params)
+        blocks_params_flops = _pruning(opt, train_handler, blocks_args, global_params)
         
     if opt.early_exit.enabled:
-        _early_exit(opt, train_handler, blocks_args, global_params)
+        _early_exit(opt, train_handler, blocks_args, global_params, blocks_params_flops, blocks_res_channel)
         
 if __name__ == "__main__":
     opt = ConfLoader(sys.argv[1]).opt

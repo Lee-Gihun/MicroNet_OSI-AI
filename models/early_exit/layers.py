@@ -29,21 +29,21 @@ class EarlyExitBlock(nn.Module):
         self._depthwise_conv = Conv2d(in_channels, in_channels, kernel_size=3, bias=False, groups=in_channels)
         self._bn0 = self.bn(in_channels)
         
-        self._projection_conv = Conv2d(in_channels, final_channels, kernel_size=1, bias=False)
+        self._expand_conv = Conv2d(in_channels, final_channels, kernel_size=1, bias=False)
         self._bn1 = self.bn(final_channels)
         
         # classifier module
-        self._globalavgpool = nn.AdaptiveAvgPool2d(1)
-        self._shallow_classifier = Conv2d(final_channels, global_params.num_classes, kernel_size=1, bias=True)
+        self._avg_pooling = nn.AdaptiveAvgPool2d(1)
+        self._fc = Conv2d(final_channels, global_params.num_classes, kernel_size=1, bias=True)
     
     def forward(self, x):
         # conv
         x = self.act(self._bn0(self._depthwise_conv(x)))
-        x = self.act(self._bn1(self._projection_conv(x)))
+        x = self.act(self._bn1(self._expand_conv(x)))
 
         # classifier
-        x = self._globalavgpool(x)
-        x = self._shallow_classifier(x).squeeze()
+        x = self._avg_pooling(x)
+        x = self._fc(x).squeeze()
         return x
     
     
