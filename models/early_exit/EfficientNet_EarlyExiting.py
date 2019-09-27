@@ -28,8 +28,9 @@ class EfficientNet_EarlyExiting(EfficientNet):
         self._early_exit = early_exit
         
         self._exit = EarlyExitBlock(global_params, early_exit.in_channels, early_exit.final_channels)
-        self._exit_cond = LogitCond(early_exit.thres)
-
+        self._exit_cond_train = LogitCond(1)
+        self._exit_cond_test = LogitCond(early_exit.thres)
+        
     def forward(self, inputs):
         """ Calls extract_features to extract features, applies final linear layer, and returns logits. """            
         if self.upsample:
@@ -52,12 +53,17 @@ class EfficientNet_EarlyExiting(EfficientNet):
             if idx == self._early_exit.blocks_idx:
                 early_exit = self._exit(x)
                 
-                cond_up, cond_down = self._exit_cond(early_exit)
+                if self.training:
+                    cond_up, cond_down = self._exit_cond_train(early_exit)
+                else:
+                    cond_up, cond_down = self._exit_cond_test(early_exit)
                 output[cond_up] = early_exit[cond_up]
                 exit_mark[cond_up] = 1
                 
                 if (cond_down.sum().item() == 0) and (not self.training):
                     return output, exit_mark
+                
+                x = x[cond_down]
 
         # Head
         x = self.act(self._bn1(self._conv_head(x)))

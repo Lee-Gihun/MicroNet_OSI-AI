@@ -86,7 +86,7 @@ FullyConnected = collections.namedtuple(
     'FullyConnected', ['kernel_shape', 'use_bias', 'activation'])
 
 class ReadModel:
-    def __init__(self, conv_stem, blocks_args, global_params, last_ops, activation):
+    def __init__(self, conv_stem=None, blocks_args=None, global_params=None, last_ops=None, activation=None):
         self.conv_stem     = conv_stem
         self.blocks_args   = blocks_args
         self.global_params = global_params
@@ -218,6 +218,19 @@ class ReadModel:
         all_ops.append(('_fc', FullyConnected(kernel_shape=[out_channel, num_classes], use_bias=True, activation=None)))
         
         return all_ops
+    
+    def get_early_exit_ops(self, input_size, in_channel, out_channel, num_classes, activation, use_bias):
+        all_ops = []
+        
+        all_ops.append(self.get_depthwise_conv(input_size, 3, 1, in_channel, activation, use_bias))
+        
+        all_ops.append(self.get_expand_conv(input_size, in_channel, out_channel, activation, use_bias))
+        
+        all_ops.append(('_avg_pooling', GlobalAvg(input_size=input_size, n_channels=out_channel)))
+
+        all_ops.append(('_fc', FullyConnected(kernel_shape=[out_channel, num_classes], use_bias=True, activation=None)))
+        
+        return all_ops
 
     def read_model(self, input_size, use_bias):
         all_ops, input_size = self.get_stem_ops(input_size,
@@ -242,6 +255,11 @@ class ReadModel:
                                     self.activation,
                                     use_bias)
 
+        return all_ops
+    
+    def read_early_exit_model(self, input_size, in_channel, out_channel, num_classes, activation, use_bias):
+        all_ops = self.get_early_exit_ops(input_size, in_channel, out_channel, num_classes, activation, use_bias)
+        
         return all_ops
     
     
@@ -460,8 +478,11 @@ class MicroNetCounter(object):
     _line_str = ('{:25s} {:10d} {:13d} {:13d} {:13d} {:15.3f} {:10.3f}'
                ' {:10.3f} {:10.3f}')
 
-    def __init__(self, conv_stem, blocks_args, global_params, last_ops, activation, input_size, use_bias, add_bits_base=32, mul_bits_base=32):
-        self.all_ops = ReadModel(conv_stem, blocks_args, global_params, last_ops, activation).read_model(input_size=input_size, use_bias=use_bias)
+    def __init__(self, conv_stem=None, blocks_args=None, global_params=None, last_ops=None, activation=None, input_size=None, use_bias=None, add_bits_base=32, mul_bits_base=32, early_exit=None):
+        if not early_exit:
+            self.all_ops = ReadModel(conv_stem, blocks_args, global_params, last_ops, activation).read_model(input_size=input_size, use_bias=use_bias)
+        else:
+            self.all_ops = ReadModel(global_params=global_params).read_early_exit_model(early_exit.input_size, early_exit.in_channels, early_exit.final_channels, global_params.num_classes, global_params.activation, early_exit.use_bias)
         #print(self.all_ops)
         
         # Full precision add is counted one.
@@ -516,6 +537,8 @@ class MicroNetCounter(object):
         self._print_header()
         # Let's count starting from zero.
         total_params, total_mults, total_adds = [0] * 3
+        blocks_params_flops = []
+        blocks_res_channel = []
         for op_name, op_template in self.all_ops:
             if op_name.startswith('block'):
                 if not summarize_blocks:
@@ -535,6 +558,7 @@ class MicroNetCounter(object):
                      for _, template in op_template])
                 # Let's extract the input_size and in_channels from the first operation.
                 input_size, _, in_channels, _ = get_info(op_template[0][1])
+                blocks_res_channel.append((input_size, in_channels))
                 # Since we don't know what is inside a block we don't know the following
                 # fields.
                 kernel_size = out_channels = -1
@@ -549,9 +573,11 @@ class MicroNetCounter(object):
             total_mults += flop_mults
             total_adds += flop_adds
             # Print the operation.
-            self._print_line(op_name, input_size, kernel_size, in_channels,
-                           out_channels, param_count, flop_mults, flop_adds,
-                           mul_bits, add_bits)
+            block_params, block_flops = self._print_line(op_name, input_size, kernel_size, in_channels,
+                                                         out_channels, param_count, flop_mults, flop_adds,
+                                                         mul_bits, add_bits, final=True)
+            
+            blocks_params_flops.append((block_params, block_flops))
 
         # Print Total values.
         # New string since we are passing empty strings instead of integers.
@@ -561,4 +587,4 @@ class MicroNetCounter(object):
                             'total', '', '', '', '', total_params, total_mults, total_adds,
                             mul_bits, add_bits, base_str=out_str, final=True)
         
-        return params, flops
+        return params, flops, blocks_params_flops, blocks_res_channel
