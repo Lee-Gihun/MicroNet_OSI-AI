@@ -16,7 +16,7 @@ def weight_prune(model, pruning_perc, prev_masks=None, norm=False, device='cpu')
     idx = 0
     all_weights = []
     for p in model.parameters():
-        if len(p.data.size()) != 1:
+        if len(p.data.size()) != 1 and p.requires_grad:
             if not prev_masks:
                 if not norm:
                     all_weights += list(abs(p.cpu().data.numpy()).flatten())
@@ -34,7 +34,7 @@ def weight_prune(model, pruning_perc, prev_masks=None, norm=False, device='cpu')
     idx = 0
     masks = []
     for p in model.parameters():
-        if len(p.data.size()) != 1:
+        if len(p.data.size()) != 1 and p.requires_grad:
             if not prev_masks:
                 if not norm:
                     pruned_inds = p.data.abs() > threshold
@@ -70,7 +70,7 @@ def prune_one_filter(model, masks, norm, device='cpu'):
 
     values = []
     for p in model.parameters():
-        if len(p.data.size()) != 1: # nasty way of selecting conv layer
+        if len(p.data.size()) != 1 and p.requires_grad: # nasty way of selecting conv layer
             p_np = p.data.cpu().numpy()
 
             # construct masks if there is not

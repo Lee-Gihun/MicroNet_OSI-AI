@@ -31,10 +31,10 @@
         }
     },
     "trainhandler": {
-        "seed": 2019,
-        "device": "cuda:1",
+        "seed": 960223,
+        "device": "cuda:0",
         "path": "./results",
-        "name": "baseline_already_50",
+        "name": "baseline",
         "mixup": {
             "enabled": true,
             "alpha": 1.0
@@ -59,15 +59,15 @@
         },
         "pretrained": {
             "enabled": true,
-            "sparsity": 50,
-            "fpath": "./results/trained_models/baseline_pruned_weight_50.00_iterative_rounds_5"
+            "sparsity": 0,
+            "fpath": "./results/trained_models/baseline"
         },
         "prune": {
             "enabled": true,
             "weight_reset": false,
             "method": "weight",
-            "sparsity": 70,
-            "rounds": 4,
+            "sparsity": 50,
+            "rounds": 5,
             "gradually": true,
             "norm": true,
             "num_epochs": 600,
@@ -104,7 +104,26 @@
         "num_epochs": 1,
         "pretrained": {
             "enabled": false,
-            "fpath": "./results/trained_models/testing_early_exit"
+            "sparsity": 0,
+            "fpath": "./results/trained_models/baseline_early_exit"
+        },
+        "prune": {
+            "enabled": true,
+            "weight_reset": false,
+            "method": "weight",
+            "sparsity": 50,
+            "rounds": 5,
+            "gradually": true,
+            "norm": true,
+            "num_epochs": 1,
+            "optimizer": {
+                "lr": 0.13,
+                "weight_decay": 1e-5,
+                "momentum": 0.9
+            },
+            "scheduler": {
+                "T_max": 600
+            }
         }
     }
 }

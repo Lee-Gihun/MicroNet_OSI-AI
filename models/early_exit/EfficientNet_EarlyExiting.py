@@ -80,3 +80,13 @@ class EfficientNet_EarlyExiting(EfficientNet):
             return output, exit_mark
 
         return early_exit
+    
+    def set_masks(self, masks, prev=False):
+        if not prev:
+            self.masks = masks
+        else:
+            masks = self.masks
+            
+        self._exit._depthwise_conv.set_mask(masks[0])
+        self._exit._expand_conv.set_mask(masks[1])
+        self._exit._fc.set_mask(masks[2])
