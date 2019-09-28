@@ -7,7 +7,7 @@ import random
 
 from .autoaugment import *
 
-__all__ = ['cifar_10_setter', 'cifar_100_setter']
+__all__ = ['cifar_10_setter', 'cifar_100_setter', 'imagenet_setter']
 
 def cifar_10_setter(batch_size=128, valid_size=5000, pin_memory=False, num_workers=4, root='./data/cifar', download=True, fixed_valid=True, autoaugment=False):
     if fixed_valid:
