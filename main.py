@@ -135,10 +135,7 @@ def _get_trainhanlder(opt, model, dataloaders, dataset_sizes):
     
     return train_handler
 
-def __get_sparsity(opt, round):
-    param = opt.model.prune
-    prev_sparsity = opt.model.pretrained.sparsity if opt.model.pretrained.enabled else 0
-    
+def __get_sparsity(param, round, prev_sparsity):
     assert param.sparsity > prev_sparsity
     
     if param.gradually:
@@ -148,9 +145,7 @@ def __get_sparsity(opt, round):
 
     return round_sparsity
     
-def __get_masks(opt, train_handler, round_sparsity, masks):    
-    param = opt.model.prune
-    
+def __get_masks(opt, param, train_handler, round_sparsity, masks):
     if not masks:
         masks = PRUNE_METHOD[param.method](train_handler.model, round_sparsity, norm=param.norm, device=opt.trainhandler.device)
     else:
@@ -158,19 +153,15 @@ def __get_masks(opt, train_handler, round_sparsity, masks):
 
     return masks
         
-def __get_model_name(opt, round):
-    param = opt.model.prune
-    
+def __get_model_name(param, train_handler, round):
     if param.rounds == 1:
-        model_name = opt.trainhandler.name + '_pruned_%s_%.2f' % (param.method, param.sparsity) + '_oneshot'
+        model_name = train_handler.name + '_pruned_%s_%.2f' % (param.method, param.sparsity) + '_oneshot'
     else:
-        model_name = opt.trainhandler.name + '_pruned_%s_%.2f' % (param.method, param.sparsity) + '_iterative_rounds_%d' % (round + 1)
+        model_name = train_handler.name + '_pruned_%s_%.2f' % (param.method, param.sparsity) + '_iterative_rounds_%d' % (round + 1)
         
     return model_name
     
-def __reset_states(opt, train_handler):
-    param = opt.model.prune
-    
+def __reset_states(param, train_handler):
     if param.weight_reset:
         train_handler.reset_model_state()
     else:
@@ -190,21 +181,23 @@ def __update_states(opt, train_handler, optimizer_param, scheduler_param):
 
 def _pruning(opt, train_handler, blocks_args, global_params):
     masks = None
+    param = opt.model.prune
+    prev_sparsity = opt.model.pretrained.sparsity if opt.model.pretrained.enabled else 0
         
-    for round in range(opt.model.prune.rounds):
-        round_sparsity = __get_sparsity(opt, round)
+    for round in range(param.rounds):
+        round_sparsity = __get_sparsity(param, round, prev_sparsity)
         blocks_params_flops, _ = _count_params_flops(opt, blocks_args, global_params, sparsity=round_sparsity)
 
-        masks = __get_masks(opt, train_handler, round_sparsity, masks)
+        masks = __get_masks(opt, param, train_handler, round_sparsity, masks)
         train_handler.model.set_masks(masks)
         train_handler.prune = True
 
-        model_name = __get_model_name(opt, round)
+        model_name = __get_model_name(param, train_handler, round)
         train_handler.set_name(model_name)
 
         train_handler.test_model(pretrained=True)
         
-        train_handler = __reset_states(opt, train_handler)
+        train_handler = __reset_states(param, train_handler)
         train_handler = __update_states(opt, train_handler, opt.model.prune.optimizer, opt.model.prune.scheduler)
         
         train_handler.train_model(num_epochs=opt.model.prune.num_epochs)
@@ -217,17 +210,19 @@ def __get_early_exit_model(opt, train_handler, blocks_args, global_params, block
     
     early_exit = get_early_exit(in_channels=blocks_res_channel[param.blocks_idx+1][1], final_channels=param.final_channels, input_size=blocks_res_channel[param.blocks_idx+1][0], use_bias=param.use_bias, thres=param.thres, blocks_idx=param.blocks_idx, device=opt.trainhandler.device)
     early_exit_model = EfficientNet_EarlyExiting(blocks_args, global_params, early_exit)
-    
-    for params in train_handler.model.parameters():
-        params.requires_grad = False
-    for params in early_exit_model.parameters():
-        params.requires_grad = True
         
     early_exit_model.load_state_dict(train_handler.model.state_dict(), strict=False)
+    
+    for name, params in early_exit_model.named_parameters():
+        for comp, _ in train_handler.model.named_parameters():
+            if name == comp:
+                params.requires_grad = False
+            
     train_handler.model = early_exit_model.to(opt.trainhandler.device)
     
     if train_handler.precision == 16:
         train_handler.model.half()
+    
     
     return train_handler, early_exit
 
@@ -277,6 +272,31 @@ def _count_early_exit_params_flops(global_params, early_exit, sparsity, blocks_p
     print('flops: {:.6f}M, params: {:.6f}M'.format(total_flops, total_params))
     print('score: {:.6f} + {:.6f} = {:.6f}'.format(total_flops/(10490), total_params/(36.5 * 4), total_flops/(10490) + total_params/(36.5 * 4)))
     print('=' * 50)
+    
+def _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_exit, blocks_params_flops):
+    masks = None
+    param = opt.early_exit.prune
+    prev_sparsity = opt.early_exit.pretrained.sparsity if opt.early_exit.pretrained.enabled else 0
+        
+    for round in range(param.rounds):
+        round_sparsity = __get_sparsity(param, round, prev_sparsity)
+
+        masks = __get_masks(opt, param, train_handler, round_sparsity, masks)
+        train_handler.model.set_masks(masks)
+        train_handler.prune = True
+
+        model_name = __get_model_name(param, train_handler, round)
+        train_handler.set_name(model_name)
+
+        train_handler.test_model(pretrained=True)
+        
+        train_handler = __reset_states(param, train_handler)
+        train_handler = __update_states(opt, train_handler, opt.early_exit.prune.optimizer, opt.early_exit.prune.scheduler)
+        
+        train_handler.train_model(num_epochs=opt.early_exit.prune.num_epochs)
+        _, _, exit_percent = train_handler.test_model()
+        
+        _count_early_exit_params_flops(global_params, early_exit, round_sparsity, blocks_params_flops, exit_percent)
 
 def _early_exit(opt, train_handler, blocks_args, global_params, blocks_params_flops, blocks_res_channel):
     train_handler, early_exit = __get_early_exit_model(opt, train_handler, blocks_args, global_params, blocks_res_channel)
@@ -286,6 +306,7 @@ def _early_exit(opt, train_handler, blocks_args, global_params, blocks_params_fl
     if not opt.early_exit.pretrained.enabled:
         train_handler.train_model(num_epochs=opt.early_exit.num_epochs)
         _, _, exit_percent = train_handler.test_model()
+        sparsity = 0
     else:
         initial_model = torch.load(os.path.join(opt.early_exit.pretrained.fpath, 'initial_model.pth'), map_location=opt.trainhandler.device)
         train_handler.init_states['model'] = copy.deepcopy(initial_model)
@@ -296,11 +317,14 @@ def _early_exit(opt, train_handler, blocks_args, global_params, blocks_params_fl
         train_handler.model.load_state_dict(pretrained_dict, strict=False)
         
         _, _, exit_percent = train_handler.test_model(pretrained=True)
+        sparsity = opt.early_exit.pretrained.sparsity / 100
         
     # counting
-    _count_early_exit_params_flops(global_params, early_exit, 0, blocks_params_flops, exit_percent)
+    _count_early_exit_params_flops(global_params, early_exit, sparsity, blocks_params_flops, exit_percent)
         
     # TODO: pruning about early_exit
+    if opt.early_exit.prune.enabled:
+        _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_exit, blocks_params_flops)
 
 def run(opt):
     dataloaders, dataset_sizes = _get_dataset(opt)
