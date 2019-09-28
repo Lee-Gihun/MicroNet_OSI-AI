@@ -114,3 +114,66 @@ def cifar_100_setter(batch_size=128, valid_size=5000, pin_memory=False, num_work
     dataset_sizes = {'train': len(cifar100_train_set), 'valid' : len(cifar100_valid_set), 'test' : len(cifar100_test_set)}
     
     return dataloaders, dataset_sizes
+
+
+def imagenet_setter(batch_size=128, valid_size=0, pin_memory=False, num_workers=4, root='./data/imagenet', fixed_valid=True, autoaugment=False):
+    """
+    Only train and valid set exists for imagenet dataset.
+    train/test transfromations are following conventions.
+    Imagenet Dataset has same images for Classification Task (2012-2017)
+    The valid images are from ImageNet2012. 
+    """
+    train_dir = os.path.join(root, 'train')
+    test_dir = os.path.join(root, 'val')
+        
+    mean = [0.485, 0.456, 0.406]
+    stdv = [0.229, 0.224, 0.225] 
+
+    # Standard train transformation
+    train_transform_list = [
+        transforms.RandomResizedCrop(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=stdv)
+        ]
+    
+    test_transform_list = [
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=stdv),        
+    ]
+
+    if autoaugment:
+        train_transform_list.insert(0, ImageNetPolicy())
+
+    train_transforms = transforms.Compose(train_transform_list)
+    test_transforms = transforms.Compose(test_transform_list)
+    
+    batch_size = batch_size
+    
+    # Datasets
+    imagenet_train_set = datasets.ImageFolder(train_dir, transform=train_transforms) 
+    imagenet_test_set = datasets.ImageFolder(test_dir, transform=test_transforms)
+
+    if valid_size > 0:
+        imagenet_valid_set = datasets.ImageFolder(train_dir, transform=test_transforms)
+        valid_list = random.sample(range(0, len(imagenet_train_set)), valid_size)
+        train_list = [x for x in range(len(imagenet_valid_set))]
+        train_list = list(set(train_list) - set(valid_list))
+
+        imagenet_train_set = Subset(imagenet_train_set, train_list)
+        imagenet_valid_set = Subset(imagenet_valid_set, valid_list)
+
+        valid_loader = torch.utils.data.DataLoader(imagenet_valid_set, batch_size=batch_size, pin_memory=pin_memory, num_workers=num_workers)
+
+    train_loader = torch.utils.data.DataLoader(imagenet_train_set, batch_size=batch_size, shuffle=True, pin_memory=pin_memory, num_workers=num_workers)
+    test_loader = torch.utils.data.DataLoader(imagenet_test_set, batch_size=100, shuffle=False, pin_memory=pin_memory, num_workers=num_workers)
+
+    dataloaders = {'train' : train_loader, 'test': test_loader}
+    dataset_sizes = {'train': len(imagenet_train_set), 'test': len(imagenet_test_set)}
+    if valid_size > 0:
+        dataloaders['valid'] = valid_loader
+        dataset_sizes['valid'] = len(imagenet_valid_set)    
+    
+    return dataloaders, dataset_sizes
