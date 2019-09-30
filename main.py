@@ -153,11 +153,11 @@ def __get_masks(opt, param, train_handler, round_sparsity, masks):
 
     return masks
         
-def __get_model_name(param, train_handler, round):
+def __get_model_name(param, name, round_sparsity):
     if param.rounds == 1:
-        model_name = train_handler.name + '_pruned_%s_%.2f' % (param.method, param.sparsity) + '_oneshot'
+        model_name = name + '_oneshot' + '_sparsity_%.2f' % round_sparsity
     else:
-        model_name = train_handler.name + '_pruned_%s_%.2f' % (param.method, param.sparsity) + '_iterative_rounds_%d' % (round + 1)
+        model_name = name + '_iterative' + '_sparsity_%.2f' % round_sparsity
         
     return model_name
     
@@ -192,7 +192,7 @@ def _pruning(opt, train_handler, blocks_args, global_params):
         train_handler.model.set_masks(masks)
         train_handler.prune = True
 
-        model_name = __get_model_name(param, train_handler, round)
+        model_name = __get_model_name(param, opt.trainhandler.name, round_sparsity)
         train_handler.set_name(model_name)
 
         train_handler.test_model(pretrained=True)
@@ -227,6 +227,7 @@ def __get_early_exit_model(opt, train_handler, blocks_args, global_params, block
     return train_handler, early_exit
 
 def __set_trainhandler(opt, train_handler):
+    train_handler.prune = False
     train_handler.early_exit = True
     train_handler.set_criterion(OverHaulLoss(**opt.early_exit.criterion))
     train_handler.set_prediction(early_exit_pred_mark)
@@ -277,6 +278,7 @@ def _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_ex
     masks = None
     param = opt.early_exit.prune
     prev_sparsity = opt.early_exit.pretrained.sparsity if opt.early_exit.pretrained.enabled else 0
+    name = train_handler.name + opt.early_exit.name
         
     for round in range(param.rounds):
         round_sparsity = __get_sparsity(param, round, prev_sparsity)
@@ -285,7 +287,7 @@ def _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_ex
         train_handler.model.set_masks(masks)
         train_handler.prune = True
 
-        model_name = __get_model_name(param, train_handler, round)
+        model_name = __get_model_name(param, name, round_sparsity)
         train_handler.set_name(model_name)
 
         train_handler.test_model(pretrained=True)
@@ -336,7 +338,7 @@ def run(opt):
     train_handler = _get_trainhanlder(opt, model, dataloaders, dataset_sizes)
     
     if not opt.model.pretrained.enabled:
-        train_handler.train_model(num_epochs=opt.trainhandler.train.num_epochs)
+        train_handler.train_model(num_epochs=opt.trainhandler.num_epochs)
     else:
         print('Pretrained model is loaded')
         print('=' * 50)

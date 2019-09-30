@@ -31,18 +31,16 @@
         }
     },
     "trainhandler": {
-        "seed": 960223,
-        "device": "cuda:0",
+        "seed": 223,
+        "device": "cuda:1",
         "path": "./results",
-        "name": "baseline",
+        "name": "testing",
+        "num_epochs": 1,
         "mixup": {
             "enabled": true,
             "alpha": 1.0
         },
-        "precision": 16,
-        "train": {
-            "num_epochs": 1200
-        }
+        "precision": 16
     },
     "model": {
         "param": {
@@ -58,7 +56,7 @@
             "num_classes": 100
         },
         "pretrained": {
-            "enabled": true,
+            "enabled": false,
             "sparsity": 0,
             "fpath": "./results/trained_models/baseline"
         },
@@ -67,10 +65,10 @@
             "weight_reset": false,
             "method": "weight",
             "sparsity": 50,
-            "rounds": 5,
+            "rounds": 2,
             "gradually": true,
             "norm": true,
-            "num_epochs": 600,
+            "num_epochs": 1,
             "optimizer": {
                 "lr": 0.13,
                 "weight_decay": 1e-5,
@@ -82,8 +80,8 @@
         }
     },
     "early_exit": {
-        "enabled": false,
-        "name": "_early_exit",
+        "enabled": true,
+        "name": "_basic_early_exit",
         "param": {
             "final_channels": 150,
             "use_bias": false,
@@ -112,7 +110,7 @@
             "weight_reset": false,
             "method": "weight",
             "sparsity": 50,
-            "rounds": 5,
+            "rounds": 1,
             "gradually": true,
             "norm": true,
             "num_epochs": 1,
