@@ -99,7 +99,7 @@ def _count_params_flops(opt, blocks_args, global_params, sparsity=0):
         SPARSITY = sparsity
 
     params, flops, blocks_params_flops, blocks_res_channel = counter.print_summary(SPARSITY, PARAMETER_BITS, ACCUMULATOR_BITS, INPUT_BITS, summarize_blocks=SUMMARIZE_BLOCKS)
-    print('flops: {:.6f}M, params: {:.6f}Mbyte'.format(flops, params))
+    print('flops: {:.6f}M, params: {:.6f}MBytes'.format(flops, params))
     print('score: {:.6f} + {:.6f} = {:.6f}'.format(flops/(10490), params/(36.5 * 4), flops/(10490) + params/(36.5 * 4)))
     print('=' * 50)
     
@@ -268,7 +268,7 @@ def _count_early_exit_params_flops(global_params, early_exit, sparsity, blocks_p
             exit = True
 
     total_flops = (exit_flops * exit_percent) + (not_exit_flops * (1 - exit_percent))
-    print('flops: {:.6f}M, params: {:.6f}Mbyte'.format(total_flops, total_params))
+    print('flops: {:.6f}M, params: {:.6f}MBytes'.format(total_flops, total_params))
     print('score: {:.6f} + {:.6f} = {:.6f}'.format(total_flops/(10490), total_params/(36.5 * 4), total_flops/(10490) + total_params/(36.5 * 4)))
     print('=' * 50)
     
