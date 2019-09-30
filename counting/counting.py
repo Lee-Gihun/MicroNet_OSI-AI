@@ -322,7 +322,7 @@ def get_conv_output_size(image_size, filter_size, padding, stride):
     else:
         raise NotImplementedError('Padding: %s should be `same` or `valid`.'
                                   % padding)
-    out_size = np.ceil((image_size - filter_size + 1. + 2 * pad) / stride)
+    out_size = np.floor((image_size - filter_size + 1. + 2 * pad) / stride)
     return int(out_size)
 
 
