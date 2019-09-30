@@ -19,7 +19,7 @@ The details of Stem_Conv, Head_Conv, and MBConvBlock are described below the 'Ma
 
 ## 2. Our Approach Detail
 
-### 2-0. Configuration (Please refer to `Config/main.json`)
+### 2-0. Configuration (Please refer to `Config/reproduce.json`)
 * <b>Data & Model precision</b>
     * 16 bits
 * <b>Data</b>
@@ -99,61 +99,26 @@ Here, (1/2) means 16-bit quantization.
 
 ### 3-1. Parameter Storage
 
-* Upsample(nearest): $0$
-* Stem_Conv2d:
-    * $3 \times 3 \times 3 \times 24$ (Conv2d)
-    * $0$ (BatchNorm)
-    * $0$ (Activation)
-* MBConvBlock(k,s,e,i,o,se):
-    * $1 \times 1 \times i \times (i \times e)$ (Expansion_Conv)
-    * $k \times k \times (i \times e)$ (Depthwise_Conv)
-    * $1 \times 1 \times (i \times e) \times int(i \times e \times se)$ (SE_squeeze weight) + $int(i \times e \times se)$ (SE_squeeze bias)
-    * $1 \times 1 \times int(i \times e \times se) \times (i \times e)$ (SE_expand weight) + $(i \times e)$ (SE_squeeze bias)
-    * $1 \times 1 \times (i \times e) \times o$ (Projection_conv) 
-        * when $e=1$, Expansion_Conv is omitted. (i.e., $- 1 \times 1 \times i \times (i \times e)$)
-* Head_Conv2d:
-    * $1 \times 1 \times 96 \times 136$ (Conv2d)
-    * $0$ (BatchNorm)
-    * $0$ (Activation)
-* Global Average Pooling: $0$
-* FullyConnected: $136 \times 100$ (Weight) + $100$ (Bias)
+<img src="./src/Params.png" width="1200"/>
 
 ### 3-2. Math Operations
 
-* Upsample(nearest): \[ $63\times63\times3$ \<multi\> + $0$ \<add\> \]
-* Stem_Conv2d:
-    * \[ $(3 \times 3 \times 3) \times (31 \times 31 \times 24)$ \<multi\> + $(3 \times 3 \times 3 - 1) \times (31 \times 31 \times 24)$ \<add\> \] (Conv2d)
-    * $0$ (BatchNorm) 
-    * \[ $(3) \times (31 \times 31 \times 24)$ \<multi\> + $(1) \times (31 \times 31 \times 24)$ \<add\> \] (Swish Activation)
-* MBConvBlock(k,s,e,i,o,se):
-    * \[ $(1 \times 1 \times i) \times (w_{in} \times h_{in} \times (i \times e))$ \<multi\> + $(1 \times 1 \times i - 1) \times (w_{in} \times h_{in} \times (i \times e))$ \<add\> \] (Expansion_Conv)
-    * $0$ (BatchNorm) 
-    * \[ $(3) \times (w_{in} \times h_{in} \times (i \times e))$ \<multi\> + $(1) \times (w_{in} \times h_{in} \times (i \times e))$ \<add\> \] (Swish Activation)
-    * \[ $(k \times k) \times (w_{out} \times h_{out} \times (i \times e))$ \<multi\> + $(k \times k - 1) \times (w_{out} \times h_{out} \times (i \times e))$ \<add\> \] (Depthwise_Conv)
-    * $0$ (BatchNorm) 
-    * \[ $(3) \times (w_{out} \times h_{out} \times (i \times e))$ \<multi\> + $(1) \times (w_{out} \times h_{out} \times (i \times e))$ \<add\> \] (Swish Activation)
-    * \[ $(i \times e)$ \<multi\> + $(w_{out} \times h_{out} -1 ) \times (i \times e)$ \<add\> \] (Global Average Pooling)
-    * \[ $(1 \times 1 \times (i \times e)) \times (1 \times 1 \times int(i \times e \times se))$ \<multi\> + $(1 \times 1 \times (i \times e) -1) \times (1 \times 1 \times int(i \times e \times se))$ \<add\> \] (SE_squeee weight)
-    * \[ $0$ \<multi\> + $(1 \times 1 \times int(i \times e \times se))$ \<add\> \] (SE_squeee bias)
-    * $0$ (BatchNorm) 
-    * \[ $(3) \times (1 \times 1 \times int(i \times e \times se))$ \<multi\> + $(1) \times (1 \times 1 \times int(i \times e \times se))$ \<add\> \] (Swish Activation)
-    * \[ $(1 \times 1 \times int(i \times e \times se)) \times (1 \times 1 \times (i \times e))$ \<multi\> + $(1 \times 1 \times int(i \times e \times se) -1) \times (1 \times 1 \times (i \times e))$ \<add\> \] (SE_expand weight)
-    * \[ $0$ \<multi\> + $(1 \times 1 \times (i \times e))$ \<add\> \] (SE_expand bias)
-    * $0$ (BatchNorm) 
-    * \[ $(2) \times (1 \times 1 \times (i \times e))$ \<multi\> + $(1) \times (1 \times 1 \times (i \times e))$ \<add\> \] (Sigmoid)
-    * \[ $(w_{out} \times h_{out} \times (i \times e))$ \<multi\> + $0$ \<add\> \] (Scale)
-    * \[ $(1 \times 1 \times (i \times e)) \times (w_{out} \times h_{out} \times o)$ \<multi\> + $(1 \times 1 \times (i \times e) - 1) \times (w_{out} \times h_{out} \times o)$ \<add\> \] (Projection)
-        * when $e=1$, Expansion_Conv is omitted. (i.e., $ - 1 \times 1 \times i \times (i \times e)$)
-        * when stride equals to 1, and # of input channels and # of output channels are the same, skip connection happens. (i.e., $ + w_{in} \times h_{in} \times c) $ (Add)
-* Head_Conv2d:
-    * \[ $(1 \times 1 \times 96) \times (7 \times 7 \times 136)$ \<multi\> + $(1 \times 1 \times 96 - 1) \times (7 \times 7 \times 136)$ \<add\> \] (Conv2d)
-    * $0$ (BatchNorm) 
-    * \[ $(3) \times (7 \times 7 \times 136)$ \<multi\> + $(1) \times (7 \times 7 \times 136)$ \<add\> \] (Swish Activation)
-* AveragePool:
-    * \[ $(136)$ \<multi\> + $(7 \times 7 - 1 ) \times 136$ \<add\> \] (Global Average Pooling)
-* FullyConnected:
-    * \[ $(136) \times (100)$ \<multi\> + $(135) \times (100) $ \<add\> \] (Weight) + \[ $0$ \<multi\> + $(100) $ \<add\> \] (Bias)
+<img src="./src/MathOps.png" width="1200"/>
 
 ## 4. Reproduce Process
-* `python main.py ./Config/main.json`
+* `python main.py ./Config/reproduce.json` # For reproducing
+* `pthonn main.py ./Config/test.json` # For testing our final checkpoint
 
+
+```python
+! jupyter nbconvert README.ipynb --to markdown --output README.md
+```
+
+    [NbConvertApp] Converting notebook README.ipynb to markdown
+    [NbConvertApp] Writing 14250 bytes to README.md
+
+
+
+```python
+
+```
