@@ -31,7 +31,7 @@
         }
     },
     "trainhandler": {
-        "seed": 223,
+        "seed": 2020,
         "device": "cuda:1",
         "path": "./results",
         "name": "baseline",
