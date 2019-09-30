@@ -56,12 +56,12 @@
             "num_classes": 100
         },
         "pretrained": {
-            "enabled": true,
+            "enabled": false,
             "sparsity": 50,
             "fpath": "./results/trained_models/baseline_iterative_sparsity_50.00"
         },
         "prune": {
-            "enabled": false,
+            "enabled": true,
             "weight_reset": false,
             "method": "weight",
             "sparsity": 50,
