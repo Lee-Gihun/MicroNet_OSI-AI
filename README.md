@@ -108,17 +108,3 @@ Here, (1/2) means 16-bit quantization.
 ## 4. Reproduce Process
 * `python main.py ./Config/reproduce.json` # For reproducing
 * `pthonn main.py ./Config/test.json` # For testing our final checkpoint
-
-
-```python
-! jupyter nbconvert README.ipynb --to markdown --output README.md
-```
-
-    [NbConvertApp] Converting notebook README.ipynb to markdown
-    [NbConvertApp] Writing 14250 bytes to README.md
-
-
-
-```python
-
-```
