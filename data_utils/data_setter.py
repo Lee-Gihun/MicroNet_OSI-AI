@@ -9,7 +9,7 @@ from .autoaugment import *
 
 __all__ = ['cifar_10_setter', 'cifar_100_setter', 'imagenet_setter']
 
-def cifar_10_setter(batch_size=128, valid_size=5000, pin_memory=False, num_workers=4, root='./data/cifar', download=True, fixed_valid=True, autoaugment=False):
+def cifar_10_setter(batch_size=128, valid_size=5000, pin_memory=False, num_workers=4, root='./data/cifar', download=True, fixed_valid=True, autoaugment=False, aug_policy='cifar10'):
     if fixed_valid:
         random.seed(2019)
     # Data augmentation and normalization for training
@@ -23,7 +23,8 @@ def cifar_10_setter(batch_size=128, valid_size=5000, pin_memory=False, num_worke
         transforms.Normalize(mean=mean, std=stdv)
     ]
     if autoaugment:
-        train_transform_list.insert(0, CIFAR10Policy())
+        if aug_policy == 'cifar10':
+            train_transform_list.insert(0, CIFAR10Policy())
 
     train_transforms = transforms.Compose(train_transform_list)
     test_transforms = transforms.Compose([
