@@ -23,7 +23,7 @@ class LabelSmoothingLoss(nn.Module):
 
 class SoftLabelSmoothingLoss(nn.Module):
     def __init__(self, classes=100, smoothing=0.0, dim=-1):
-        super(SoftLabelSmoothing, self).__init__()
+        super(SoftLabelSmoothingLoss, self).__init__()
         self.CE = nn.CrossEntropyLoss(reduction='none')
         self.confidence = 1.0 - smoothing
         self.smoothing = smoothing
