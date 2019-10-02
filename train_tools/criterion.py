@@ -21,6 +21,10 @@ class LabelSmoothingLoss(nn.Module):
             true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
         return torch.mean(torch.sum(-true_dist * pred, dim=self.dim))
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
 class SoftLabelSmoothingLoss(nn.Module):
     def __init__(self, classes=100, smoothing=0.0, dim=-1):
         super(SoftLabelSmoothingLoss, self).__init__()
@@ -35,15 +39,16 @@ class SoftLabelSmoothingLoss(nn.Module):
         max_softval, _ = torch.max(logits, dim=1)
         log_logits = logits.log()
         
-        smooth_target = torch.zeros_like(output)
-        smooth_target.fill_(self.smoothing / ( self.cls - 1))
-        smooth_target.scatter(1, target.data.unsqueeze(1), self.confidence)
+        with torch.no_grad():
+            smooth_target = torch.zeros_like(output)
+            smooth_target.fill_(self.smoothing / (self.cls - 1))
+            smooth_target.scatter_(1, target.data.unsqueeze(1), self.confidence)
         
         loss = torch.sum(-smooth_target * log_logits, dim=self.dim)
         loss = loss * (1 + max_softval)
         loss = loss.mean()
 
-        return loss   
+        return loss       
     
 class OverHaulLoss(nn.Module):
     def __init__(self, soft_label_smoothing=False, label_smoothing=False, classes=100, smoothing=0.0):
@@ -67,3 +72,4 @@ class OverHaulLoss(nn.Module):
             loss = self.loss(output, target)
         
         return loss
+    
