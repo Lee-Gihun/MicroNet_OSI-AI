@@ -89,7 +89,7 @@ def _count_params_flops(opt, blocks_args, global_params, sparsity=0):
     counter = MicroNetCounter(conv_stem, blocks_args, global_params, last_ops, activation, input_size, use_bias, add_bits_base=32, mul_bits_base=32)
 
     # Constants
-    INPUT_BITS = opt.trainhandler.precision
+    INPUT_BITS = 16
     ACCUMULATOR_BITS = opt.trainhandler.precision
     PARAMETER_BITS = INPUT_BITS
     SUMMARIZE_BLOCKS = True
@@ -242,7 +242,7 @@ def _count_early_exit_params_flops(global_params, early_exit, sparsity, blocks_p
     counter = MicroNetCounter(global_params=global_params, early_exit=early_exit)
 
     # Constants
-    INPUT_BITS = opt.trainhandler.precision
+    INPUT_BITS = 16
     ACCUMULATOR_BITS = opt.trainhandler.precision
     PARAMETER_BITS = INPUT_BITS
     SUMMARIZE_BLOCKS = True
@@ -362,5 +362,7 @@ if __name__ == "__main__":
 
     if opt.trainhandler.get('seed', None):
         torch.manual_seed(opt.trainhandler.seed)
+        torch.backends.cudnn.deterministic = True
+        np.random.seed(opt.trainhandler.seed)
     
     run(opt)
