@@ -21,7 +21,8 @@ DATASETTER = {'cifar10': cifar_10_setter,
     
 CRITERION = {'mse': nn.MSELoss,
              'cross_entropy': nn.CrossEntropyLoss,
-             'label_smoothing': LabelSmoothingLoss}
+             'label_smoothing': LabelSmoothingLoss,
+             'soft_label_smoothing': SoftLabelSmoothingLoss}
 
 OPTIMIZER = {'sgd': optim.SGD,
              'adam': optim.Adam,

@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
-__all__ = ['LabelSmoothingLoss', 'OverHaulLoss']
+__all__ = ['LabelSmoothingLoss', 'SoftLabelSmoothingLoss', 'OverHaulLoss']
 
 class LabelSmoothingLoss(nn.Module):
     def __init__(self, classes, smoothing=0.0, dim=-1):
@@ -20,12 +21,39 @@ class LabelSmoothingLoss(nn.Module):
             true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
         return torch.mean(torch.sum(-true_dist * pred, dim=self.dim))
 
+class SoftLabelSmoothingLoss(nn.Module):
+    def __init__(self, classes=100, smoothing=0.0, dim=-1):
+        super(SoftLabelSmoothing, self).__init__()
+        self.CE = nn.CrossEntropyLoss(reduction='none')
+        self.confidence = 1.0 - smoothing
+        self.smoothing = smoothing
+        self.cls = classes
+        self.dim = dim
+        
+    def forward(self, output, target):
+        logits = F.softmax(output, dim=1)
+        max_softval, _ = torch.max(logits, dim=1)
+        log_logits = logits.log()
+        
+        smooth_target = torch.zeros_like(output)
+        smooth_target.fill_(self.smoothing / ( self.cls - 1))
+        smooth_target.scatter(1, target.data.unsqueeze(1), self.confidence)
+        
+        loss = torch.sum(-smooth_target * log_logits, dim=self.dim)
+        loss = loss * (1 + max_softval)
+        loss = loss.mean()
+
+        return loss   
+    
 class OverHaulLoss(nn.Module):
-    def __init__(self, label_smoothing=False, classes=100, smoothing=0.0):
+    def __init__(self, soft_label_smoothing=False, label_smoothing=False, classes=100, smoothing=0.0):
         super(OverHaulLoss, self).__init__()
         self.label_smoothing = label_smoothing
+        self.soft_smoothing = soft_smoothing
         
-        if label_smoothing:
+        if soft_label_smoothing:
+            self.loss = SoftLabelSmoothingLoss(classes, smoothing=smoothing)
+        elif label_smoothing:
             self.loss = LabelSmoothingLoss(classes, smoothing=smoothing)
         else:
             self.loss = nn.CrossEntropyLoss()
