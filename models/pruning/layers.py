@@ -35,7 +35,7 @@ class MaskedConv2dDynamicSamePadding(nn.Conv2d):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, dilation=1, groups=1, bias=True):
         super().__init__(in_channels, out_channels, kernel_size, stride, 0, dilation, groups, bias)
         self.stride = self.stride if len(self.stride) == 2 else [self.stride[0]] * 2
-        self.symmetric1pad = SymmetricPad2d()
+        #self.symmetric1pad = SymmetricPad2d()
         self.mask_flag = False
             
     def set_mask(self, mask):
@@ -59,10 +59,12 @@ class MaskedConv2dDynamicSamePadding(nn.Conv2d):
         pad_w = max((ow - 1) * self.stride[1] + (kw - 1) * self.dilation[1] + 1 - iw, 0)
         if pad_h > 0 or pad_w > 0:
             padding = [pad_w//2, pad_w - pad_w//2, pad_h//2, pad_h - pad_h//2]
+            '''
             if (padding[0] != padding[1]) or (padding[2] != padding[3]):
                 x = self.symmetric1pad(x)
             else:
-                x = F.pad(x, padding) 
+            '''
+            x = F.pad(x, padding) 
                 
         if self.mask_flag == True:
             mask_var = self.get_mask()
@@ -90,10 +92,12 @@ class MaskedConv2dStaticSamePadding(nn.Conv2d):
         pad_w = max((ow - 1) * self.stride[1] + (kw - 1) * self.dilation[1] + 1 - iw, 0)
         if pad_h > 0 or pad_w > 0:
             padding = (pad_w//2, pad_w - pad_w//2, pad_h//2, pad_h - pad_h//2)
+            '''
             if (padding[0] != padding[1]) or (padding[2] != padding[3]):
                 self.static_padding = SymmetricPad2d()
             else:
-                self.static_padding = nn.ZeroPad2d(padding)
+            '''
+            self.static_padding = nn.ZeroPad2d(padding)
         else:
             self.static_padding = Identity()
             
