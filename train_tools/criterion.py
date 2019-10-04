@@ -21,10 +21,6 @@ class LabelSmoothingLoss(nn.Module):
             true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
         return torch.mean(torch.sum(-true_dist * pred, dim=self.dim))
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
 class SoftLabelSmoothingLoss(nn.Module):
     def __init__(self, classes=100, smoothing=0.0, dim=-1):
         super(SoftLabelSmoothingLoss, self).__init__()
