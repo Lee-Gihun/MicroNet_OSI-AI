@@ -43,7 +43,10 @@ def _get_dataset(param):
                                                            root=param.root,
                                                            fixed_valid=param.fixed_valid,
                                                            autoaugment=param.autoaugment,
-                                                           aug_policy=param.aug_policy)
+                                                           aug_policy=param.aug_policy,
+                                                           refurbish=param.refur,
+                                                           use_certain=param.use_certain
+                                                          )
     
     return dataloaders, dataset_sizes
 
