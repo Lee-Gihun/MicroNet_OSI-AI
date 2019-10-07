@@ -50,7 +50,7 @@ class OverHaulLoss(nn.Module):
     def __init__(self, soft_label_smoothing=False, label_smoothing=False, classes=100, smoothing=0.0):
         super(OverHaulLoss, self).__init__()
         self.label_smoothing = label_smoothing
-        self.soft_smoothing = soft_smoothing
+        self.soft_label_smoothing = soft_label_smoothing
         
         if soft_label_smoothing:
             self.loss = SoftLabelSmoothingLoss(classes, smoothing=smoothing)
@@ -62,10 +62,7 @@ class OverHaulLoss(nn.Module):
     def forward(self, output, target):
         if len(output) == 2:
             output = output[0]
-        if self.label_smoothing:
-            loss = self.loss(output, target)
-        else:
-            loss = self.loss(output, target)
+        loss = self.loss(output, target)
         
         return loss
     

@@ -206,7 +206,7 @@ class TrainHandler():
         epoch_loss = running_loss / self.dataset_sizes[phase]
         epoch_acc  = (running_correct.double() / self.dataset_sizes[phase]).item()
         if self.early_exit and phase != 'train':
-            epoch_early_exit = (early_exit / self.dataset_sizes[phase]).item()
+            epoch_early_exit = (early_exit.double() / self.dataset_sizes[phase]).item()
             return epoch_loss, epoch_acc, epoch_early_exit
 
         return epoch_loss, epoch_acc

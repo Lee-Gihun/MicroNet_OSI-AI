@@ -227,6 +227,7 @@ def __get_early_exit_model(opt, train_handler, blocks_args, global_params, block
 
 def __set_trainhandler(opt, train_handler):
     train_handler.prune = False
+    train_handler.mixup = False
     train_handler.early_exit = True
     train_handler.set_criterion(OverHaulLoss(**opt.early_exit.criterion))
     train_handler.set_prediction(early_exit_pred_mark)
@@ -236,6 +237,17 @@ def __set_trainhandler(opt, train_handler):
     train_handler.init_states['optimizer'] = copy.deepcopy(train_handler.optimizer.state_dict())
     train_handler.init_states['scheduler'] = copy.deepcopy(train_handler.scheduler.state_dict())
     train_handler.init_states['model'] = copy.deepcopy(train_handler.model.state_dict())
+    
+    if not opt.early_exit.data.autoaugment:
+        param = opt.data
+        
+        param['valid_size'] = opt.early_exit.data.valid_size
+        param['autoaugment'] = opt.early_exit.data.autoaugment
+        param['root'] = opt.early_exit.data.root
+        
+        dataloaders, dataset_sizes = _get_dataset(param)
+        
+        train_handler.dataloaders, train_handler.dataset_sizes = dataloaders, dataset_sizes
     
     return train_handler
 
@@ -269,6 +281,7 @@ def _count_early_exit_params_flops(global_params, early_exit, sparsity, blocks_p
             exit = True
 
     total_flops = (exit_flops * exit_percent) + (not_exit_flops * (1 - exit_percent))
+    print('exit percent: {:.2f}'.format(exit_percent * 100))
     print('flops: {:.6f}M, params: {:.6f}MBytes'.format(total_flops, total_params))
     print('score: {:.6f} + {:.6f} = {:.6f}'.format(total_flops/(10490), total_params/(36.5 * 4), total_flops/(10490) + total_params/(36.5 * 4)))
     print('=' * 50)
