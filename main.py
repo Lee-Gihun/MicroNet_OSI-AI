@@ -44,9 +44,8 @@ def _get_dataset(param):
                                                            fixed_valid=param.fixed_valid,
                                                            autoaugment=param.autoaugment,
                                                            aug_policy=param.aug_policy,
-                                                           refurbish=param.refur,
-                                                           use_certain=param.use_certain
-                                                          )
+                                                           refurbish=param.get('refur', False),
+                                                           use_certain=param.get('use_certain', False))
     
     return dataloaders, dataset_sizes
 
@@ -241,10 +240,10 @@ def __set_trainhandler(opt, train_handler):
     train_handler.init_states['scheduler'] = copy.deepcopy(train_handler.scheduler.state_dict())
     train_handler.init_states['model'] = copy.deepcopy(train_handler.model.state_dict())
     
+    # valid_size should be same with valid_size used in backbone model
     if not opt.early_exit.data.autoaugment:
         param = opt.data
         
-        param['valid_size'] = opt.early_exit.data.valid_size
         param['autoaugment'] = opt.early_exit.data.autoaugment
         param['root'] = opt.early_exit.data.root
         

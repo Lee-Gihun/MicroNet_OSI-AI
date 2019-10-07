@@ -259,7 +259,7 @@ class TrainHandler():
         test_acc  = (running_correct.double() / self.dataset_sizes['test']).item()
         topk_avg = [topk.avg for topk in avg_meter]
         if self.early_exit:
-            test_early_exit = (early_exit / self.dataset_sizes['test']).item()
+            test_early_exit = (early_exit.double() / self.dataset_sizes['test']).item()
             return test_loss, test_acc, topk_avg, test_early_exit
 
         return test_loss, test_acc, topk_avg
