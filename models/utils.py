@@ -1,7 +1,11 @@
-"""
-This file contains helper functions for building the model and for loading model parameters.
-These helper functions are built to mirror those in the official TensorFlow implementation.
-"""
+'''
+Utility functions for EfficientNet. We used same utility functions from the reference code.
+
+<Reference>
+
+[1] Luke Melas-Kyriazi, GitHub repository, https://github.com/lukemelas/EfficientNet-PyTorch
+
+'''
 
 import re
 import math
@@ -12,11 +16,6 @@ from torch import nn
 from torch.nn import functional as F
 from torch.utils import model_zoo
 from .pruning.layers import *
-
-
-########################################################################
-############### HELPERS FUNCTIONS FOR MODEL ARCHITECTURE ###############
-########################################################################
 
 
 # Parameters for the entire model (stem, all blocks, and head)
@@ -119,10 +118,6 @@ class GhostBatchNorm(BatchNorm):
                 input, self.running_mean[:self.num_features], self.running_var[:self.num_features], 
                 self.weight, self.bias, False, self.momentum, self.eps)
         
-        
-########################################################################
-############## HELPERS FUNCTIONS FOR LOADING MODEL PARAMS ##############
-########################################################################
 
 
 class BlockDecoder(object):

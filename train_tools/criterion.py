@@ -1,3 +1,10 @@
+"""
+<Reference>
+
+Label Smoothing pytorch implementation:
+[1] Sino Begonia, GitHub repository, https://github.com/diggerdu/VGGish_Genre_Classification
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

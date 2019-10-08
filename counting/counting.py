@@ -13,7 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This module defines an API for counting parameters and operations.
+"""
+This counting code is from official counting code from micronet challenge organizers.
+we partially added modules to count our model.
+
+
+This module defines an API for counting parameters and operations.
 ## Defining the Operation Count API
 - `input_size` is an int, since square image assumed.
 - `strides` is a tuple, but assumed to have same stride in both dimensions.

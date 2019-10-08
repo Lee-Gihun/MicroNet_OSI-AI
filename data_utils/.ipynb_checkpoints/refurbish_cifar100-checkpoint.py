@@ -1,3 +1,15 @@
+"""
+Refurs mislabeled data and uncertain data from cifar-100 dataset.
+The dataset is obtained using <Prestopping: How Does Early Stopping Help Generalization Against Label Noise?> under ICLR 2020 Review.
+The dataset is obtained from 7 runs using DenseNet-40 and chose best result.
+
+
+<Reference>
+
+Refurred Dataset is offered by anonymous authors.
+[1] Anonymous Authors, <Prestopping: How Does Early Stopping Help Generalization Against Label Noise?>
+"""
+
 import torch
 import pandas as pd
 import numpy as np

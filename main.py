@@ -38,6 +38,16 @@ PRUNE_METHOD = {'weight': weight_prune,
                 'filter': filter_prune}
 
 def _get_dataset(param):
+    """
+    function to make dictionary of dataloaders, dataset_sizes for phases
+
+    root : root directory (str)
+    fixed_valid : fix validation samples among train samples (bool)
+    autoaugment : whether to use autoaugment or not (bool)
+    aug_policy : choose policy for autoaugment (str)
+    refurbish : whether to use refurbished train set or not (bool)
+    use_certain : whether to exclude uncertain samples or not (bool)
+    """
     dataloaders, dataset_sizes = DATASETTER[param.dataset](batch_size=param.batch_size, 
                                                            valid_size=param.valid_size,
                                                            root=param.root,
@@ -50,6 +60,9 @@ def _get_dataset(param):
     return dataloaders, dataset_sizes
 
 def _get_model(opt):
+    """
+    Build model based on efficientnet backbone
+    """
     param = opt.model.param
     
     # AutoML results 
@@ -82,6 +95,9 @@ def _get_model(opt):
     return model, blocks_args, global_params
 
 def _count_params_flops(opt, blocks_args, global_params, sparsity=0):
+    """
+    Counting params and FLOPs for the challenge
+    """
     # define different value according to your structure
     conv_stem = {'kernel': 3, 'stride': 2, 'out_channel': 24}
     last_ops = {'out_channel': 150, 'num_classes': global_params.num_classes}
@@ -137,6 +153,7 @@ def _get_trainhanlder(opt, model, dataloaders, dataset_sizes):
     return train_handler
 
 def __get_sparsity(param, round, prev_sparsity):
+    "returns pruning ratio per round"
     assert param.sparsity > prev_sparsity
     
     if param.gradually:
@@ -147,6 +164,7 @@ def __get_sparsity(param, round, prev_sparsity):
     return round_sparsity
     
 def __get_masks(opt, param, train_handler, round_sparsity, masks):
+    "returns pruning masks"
     if not masks:
         masks = PRUNE_METHOD[param.method](train_handler.model, round_sparsity, norm=param.norm, device=opt.trainhandler.device)
     else:
@@ -155,6 +173,7 @@ def __get_masks(opt, param, train_handler, round_sparsity, masks):
     return masks
         
 def __get_model_name(param, name, round_sparsity):
+    "sets model name"
     if param.rounds == 1:
         model_name = name + '_oneshot' + '_sparsity_%.2f' % round_sparsity
     else:
@@ -163,6 +182,7 @@ def __get_model_name(param, name, round_sparsity):
     return model_name
     
 def __reset_states(param, train_handler):
+    "reset weights of model and optimization settings for the train handler"
     if param.weight_reset:
         train_handler.reset_model_state()
     else:
@@ -173,6 +193,7 @@ def __reset_states(param, train_handler):
     return train_handler
 
 def __update_states(opt, train_handler, optimizer_param, scheduler_param):
+    "uptates optimization settings"
     params = adapted_weight_decay(train_handler.model, optimizer_param.get('weight_decay', 1e-5))
     optimizer = OPTIMIZER[opt.optimizer.algo](params, **optimizer_param)
     train_handler.optimizer = optimizer
@@ -181,6 +202,7 @@ def __update_states(opt, train_handler, optimizer_param, scheduler_param):
     return train_handler
 
 def _pruning(opt, train_handler, blocks_args, global_params):
+    """executes pruning and returns counted results"""
     masks = None
     param = opt.model.prune
     prev_sparsity = opt.model.pretrained.sparsity if opt.model.pretrained.enabled else 0
@@ -207,6 +229,7 @@ def _pruning(opt, train_handler, blocks_args, global_params):
     return blocks_params_flops
 
 def __get_early_exit_model(opt, train_handler, blocks_args, global_params, blocks_res_channel):
+    "build early exiting model and its train handler"
     param = opt.early_exit.param
     
     early_exit = get_early_exit(in_channels=blocks_res_channel[param.blocks_idx+1][1], final_channels=param.final_channels, input_size=blocks_res_channel[param.blocks_idx+1][0], use_bias=param.use_bias, thres=param.thres, blocks_idx=param.blocks_idx, device=opt.trainhandler.device)
@@ -228,6 +251,7 @@ def __get_early_exit_model(opt, train_handler, blocks_args, global_params, block
     return train_handler, early_exit
 
 def __set_trainhandler(opt, train_handler):
+    "build train hander for early exiting module training"
     train_handler.prune = False
     train_handler.mixup = False
     train_handler.early_exit = True
@@ -289,6 +313,7 @@ def _count_early_exit_params_flops(global_params, early_exit, sparsity, blocks_p
     print('=' * 50)
     
 def _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_exit, blocks_params_flops):
+    "pruns early exiting module"
     masks = None
     param = opt.early_exit.prune
     prev_sparsity = opt.early_exit.pretrained.sparsity if opt.early_exit.pretrained.enabled else 0
@@ -315,6 +340,7 @@ def _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_ex
         _count_early_exit_params_flops(global_params, early_exit, round_sparsity, blocks_params_flops, exit_percent)
 
 def _early_exit(opt, train_handler, blocks_args, global_params, blocks_params_flops, blocks_res_channel):
+    "uses early exiting for the model"
     train_handler, early_exit = __get_early_exit_model(opt, train_handler, blocks_args, global_params, blocks_res_channel)
     
     train_handler = __set_trainhandler(opt, train_handler)
@@ -343,6 +369,7 @@ def _early_exit(opt, train_handler, blocks_args, global_params, blocks_params_fl
         _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_exit, blocks_params_flops)
 
 def run(opt):
+    """runs the overall process"""
     dataloaders, dataset_sizes = _get_dataset(opt.data)
 
     model, blocks_args, global_params = _get_model(opt)
@@ -374,8 +401,10 @@ def run(opt):
         _early_exit(opt, train_handler, blocks_args, global_params, blocks_params_flops, blocks_res_channel)
         
 if __name__ == "__main__":
+    # gets arguments from the json file
     opt = ConfLoader(sys.argv[1]).opt
-
+    
+    # make experiment reproducible
     if opt.trainhandler.get('seed', None):
         torch.manual_seed(opt.trainhandler.seed)
         torch.backends.cudnn.deterministic = True

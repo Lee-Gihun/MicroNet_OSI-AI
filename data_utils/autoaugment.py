@@ -1,7 +1,15 @@
-# Reference
-# https://github.com/DeepVoltaire/AutoAugment
-# <AutoAugment: Learning Augmentation Policies from Data> https://arxiv.org/abs/1805.09501v1
-#####
+"""
+<Reference>
+
+We searched augmentation policy for cifar-100 dataset based on the policy search space suggested by AutoAugment paper.
+The 
+
+Autoaugmentation Policy:
+[1] Philip Popien, GitHub repository, https://github.com/DeepVoltaire/AutoAugment
+<AutoAugment: Learning Augmentation Policies from Data> https://arxiv.org/abs/1805.09501v1
+
+
+"""
 
 from PIL import Image, ImageEnhance, ImageOps
 import numpy as np
