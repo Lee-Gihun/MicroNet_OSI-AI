@@ -35,7 +35,7 @@
         "device": "cuda:1",
         "path": "./results",
         "name": "baseline",
-        "num_epochs": 1,
+        "num_epochs": 1200,
         "mixup": {
             "enabled": true,
             "alpha": 1.0
@@ -58,7 +58,7 @@
         "pretrained": {
             "enabled": false,
             "sparsity": 0,
-            "fpath": "./results/trained_models/baseline_iterative_sparsity_60.00"
+            "fpath": "./results/trained_models/baseline"
         },
         "prune": {
             "enabled": true,
@@ -69,7 +69,7 @@
             "rounds": 11,
             "gradually": true,
             "norm": true,
-            "num_epochs": 1,
+            "num_epochs": 600,
             "optimizer": {
                 "lr": 0.13,
                 "weight_decay": 1e-5,
@@ -86,7 +86,7 @@
         "param": {
             "final_channels": 136,
             "use_bias": false,
-            "thres": 0.8,
+            "thres": 0.85,
             "blocks_idx": 4
         },
         "criterion": {
@@ -100,21 +100,21 @@
         "scheduler": {
             "T_max": 800
         },
-        "num_epochs": 1,
+        "num_epochs": 800,
         "pretrained": {
             "enabled": false,
             "sparsity": 0,
             "fpath": "./results/trained_models/baseline_iterative_sparsity_64.00_early_exit"
         },
         "prune": {
-            "enabled": true,
+            "enabled": false,
             "weight_reset": false,
             "method": "weight",
             "sparsity": 20,
             "rounds": 2,
             "gradually": true,
             "norm": true,
-            "num_epochs": 1,
+            "num_epochs": 400,
             "optimizer": {
                 "lr": 0.13,
                 "weight_decay": 1e-5,
