@@ -15,6 +15,9 @@ ACTIVATION = {'swish': relu_fn,
 
 class EarlyExitBlock(nn.Module):
     def __init__(self, global_params, in_channels=40, final_channels=150):
+        """
+        Expansion - depthwise convolution - pointwise convolution - avg pooling - fully connected
+        """
         super(EarlyExitBlock, self).__init__()
         
         # activation func
@@ -48,6 +51,9 @@ class EarlyExitBlock(nn.Module):
     
     
 class LogitCond(nn.Module):
+    """
+    from the softmax outputs, decides whether the samples are above or below threshold.
+    """
     def __init__(self, thres=1.0):
         super(LogitCond, self).__init__()
         self.thres = thres

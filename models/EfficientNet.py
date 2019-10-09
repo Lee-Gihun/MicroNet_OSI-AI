@@ -1,3 +1,13 @@
+'''
+Network modules for EfficientNet. The network backbone consists of efficientnet architecture. 
+The code is refactored from Pytorch implementation and pruning module is added.
+
+<Reference>
+
+[1] Luke Melas-Kyriazi, GitHub repository, https://github.com/lukemelas/EfficientNet-PyTorch
+
+'''
+
 import math
 import torch
 from torch import nn
@@ -191,6 +201,7 @@ class EfficientNet(nn.Module):
         return x
     
     def set_masks(self, masks, prev=False):
+        """"""
         if not prev:
             self.masks = masks
         else:

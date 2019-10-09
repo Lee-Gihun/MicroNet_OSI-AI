@@ -7,6 +7,9 @@ EarlyExit = collections.namedtuple('EarlyExit', ['in_channels', 'final_channels'
 EarlyExit.__new__.__defaults__ = (None,) * len(EarlyExit._fields)
 
 def get_early_exit(in_channels=None, final_channels=150, input_size=None, use_bias=False, thres=None, blocks_idx=None, device='cpu'):
+    """
+    returns namedtuple for counting module.
+    """
     early_exit = EarlyExit(
         in_channels=in_channels,
         final_channels=final_channels,

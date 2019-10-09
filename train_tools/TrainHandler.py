@@ -206,7 +206,7 @@ class TrainHandler():
         epoch_loss = running_loss / self.dataset_sizes[phase]
         epoch_acc  = (running_correct.double() / self.dataset_sizes[phase]).item()
         if self.early_exit and phase != 'train':
-            epoch_early_exit = (early_exit / self.dataset_sizes[phase]).item()
+            epoch_early_exit = (early_exit.double() / self.dataset_sizes[phase]).item()
             return epoch_loss, epoch_acc, epoch_early_exit
 
         return epoch_loss, epoch_acc
@@ -259,7 +259,7 @@ class TrainHandler():
         test_acc  = (running_correct.double() / self.dataset_sizes['test']).item()
         topk_avg = [topk.avg for topk in avg_meter]
         if self.early_exit:
-            test_early_exit = (early_exit / self.dataset_sizes['test']).item()
+            test_early_exit = (early_exit.double() / self.dataset_sizes['test']).item()
             return test_loss, test_acc, topk_avg, test_early_exit
 
         return test_loss, test_acc, topk_avg
