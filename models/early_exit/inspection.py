@@ -188,7 +188,7 @@ def plotter(total_acc_list, exit2_acc_list, final_acc_list, \
             condition2_list, exit2_ratio_list, score_list, \
             baseline_acc1, baseline_acc2, max_logit_co, max_logit_inco, entropy_co, entropy_inco, name='test'):
     #fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, figsize=(10, 15))
-    fig, ((ax1, ax2), (ax5, ax6)) = plt.subplots(2, 2, figsize=(8, 15))
+    fig, ((ax1, ax2), (ax5, ax6)) = plt.subplots(2, 2, figsize=(10, 12))
     
     fig.suptitle(name, fontsize=20)
 

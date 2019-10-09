@@ -34,7 +34,7 @@
         "seed": 1111,
         "device": "cuda:1",
         "path": "./results",
-        "name": "baseline",
+        "name": "baseline_iterative_sparsity_64.00",
         "num_epochs": 1200,
         "mixup": {
             "enabled": true,
