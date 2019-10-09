@@ -34,7 +34,7 @@
         "seed": 1111,
         "device": "cuda:1",
         "path": "./results",
-        "name": "baseline_seed_1111_sparsity64",
+        "name": "baseline",
         "num_epochs": 1200,
         "mixup": {
             "enabled": true,
@@ -57,8 +57,8 @@
         },
         "pretrained": {
             "enabled": true,
-            "sparsity": 64,
-            "fpath": "./results/trained_models/baseline_seed_1111_iterative_sparsity_64.00"
+            "sparsity": 0,
+            "fpath": "./results/trained_models/baseline"
         },
         "prune": {
             "enabled": false,
@@ -80,12 +80,12 @@
         }
     },
     "early_exit": {
-        "enabled": true,
-        "name": "_early_exit_testing",
+        "enabled": false,
+        "name": "_early_exit_baseline",
         "param": {
             "final_channels": 136,
             "use_bias": false,
-            "thres": 0.8,
+            "thres": 1,
             "blocks_idx": 4
         },
         "criterion": {
@@ -103,31 +103,29 @@
         "pretrained": {
             "enabled": true,
             "sparsity": 0,
-            "fpath": "./results/trained_models/baseline_seed_1111_sparsity63_early_exit_64testing"
+            "fpath": "./results/trained_models/baseline_seed_1111_sparsity64_early_exit_baseline"
         },
         "prune": {
-            "enabled": false,
+            "enabled": true,
             "weight_reset": false,
             "method": "weight",
             "sparsity": 50,
             "rounds": 5,
             "gradually": true,
             "norm": true,
-            "num_epochs": 600,
+            "num_epochs": 400,
             "optimizer": {
                 "lr": 0.13,
                 "weight_decay": 1e-5,
                 "momentum": 0.9
             },
             "scheduler": {
-                "T_max": 600
+                "T_max": 400
             }
         },
         "inspection": {
-            "enabled": false,
-            "grid" : 0.01,
-            "flops_score" : 0.3891
-            
+            "enabled": true,
+            "grid" : 0.01
         }
     }
 }

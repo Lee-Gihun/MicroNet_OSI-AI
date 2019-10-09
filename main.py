@@ -323,11 +323,15 @@ def _count_early_exit_params_flops(global_params, early_exit, sparsity, blocks_p
         if early_exit.blocks_idx == (idx - 1):
             exit = True
 
+    exiting_flops_ratio = exit_flops / not_exit_flops
+    
     total_flops = (exit_flops * exit_percent) + (not_exit_flops * (1 - exit_percent))
     print('exit percent: {:.2f}'.format(exit_percent * 100))
     print('flops: {:.6f}M, params: {:.6f}MBytes'.format(total_flops, total_params))
     print('score: {:.6f} + {:.6f} = {:.6f}'.format(total_flops/(10490), total_params/(36.5 * 4), total_flops/(10490) + total_params/(36.5 * 4)))
     print('=' * 50)
+    
+    return exiting_flops_ratio
     
 def _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_exit, blocks_params_flops):
     "pruns early exiting module"
@@ -354,11 +358,13 @@ def _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_ex
         train_handler.train_model(num_epochs=opt.early_exit.prune.num_epochs)
         _, _, exit_percent = train_handler.test_model()
         
-        _count_early_exit_params_flops(global_params, early_exit, round_sparsity, blocks_params_flops, exit_percent)
+        exiting_flops_ratio= _count_early_exit_params_flops(global_params, early_exit, round_sparsity, blocks_params_flops, exit_percent)
+    
+    return exiting_flops_ratio
         
-def _early_exit_inspector(opt, train_handler):
+def _early_exit_inspector(opt, train_handler, exiting_flops_ratio):
     inspector = EarlyExitInspector(train_handler.model, device=opt.trainhandler.device, \
-                                   flops_score=opt.early_exit.inspection.flops_score)
+                                   exiting_flops_ratio=exiting_flops_ratio)
     (max_logit_co, max_logit_inco), (entropy_co, entropy_inco) = \
     inspector._logit_dist_inspector(train_handler.dataloaders, train_handler.dataset_sizes, phase='test')
 
@@ -393,14 +399,14 @@ def _early_exit(opt, train_handler, blocks_args, global_params, blocks_params_fl
         sparsity = opt.early_exit.pretrained.sparsity / 100
             
     # counting
-    _count_early_exit_params_flops(global_params, early_exit, sparsity, blocks_params_flops, exit_percent)
+    exiting_flops_ratio = _count_early_exit_params_flops(global_params, early_exit, sparsity, blocks_params_flops, exit_percent)
     
     # TODO: pruning about early_exit
     if opt.early_exit.prune.enabled:
-        _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_exit, blocks_params_flops)
+        exiting_flops_ratio = _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_exit, blocks_params_flops)
     
     if opt.early_exit.inspection.enabled:
-        _early_exit_inspector(opt, train_handler)
+        _early_exit_inspector(opt, train_handler, exiting_flops_ratio)
 
 def run(opt):
     """runs the overall process"""

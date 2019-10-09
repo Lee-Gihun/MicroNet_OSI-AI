@@ -12,11 +12,11 @@ def top1_pred(outputs, half=False):
 
 
 class EarlyExitInspector():
-    def __init__(self, Network, device, pred=None, flops_score=0, exit_condition=0, half=False):
+    def __init__(self, Network, device, pred=None, exiting_flops_ratio=0, exit_condition=0, half=False):
         self.Network = Network.to(device).eval()
         self.pred = pred if (pred is not None) else top1_pred 
         self.device = device
-        self.exit_score = flops_score
+        self.exiting_flops_ratio = exiting_flops_ratio
         self._condition_setter(exit_condition)
         self.half = half
         
@@ -57,7 +57,7 @@ class EarlyExitInspector():
         exit_ratio = round((exit_count/size), 4)
         final_ratio = round((final_count/size), 4)
         
-        score = self._flop_checker(exit_ratio, final_ratio, self.exit_score)
+        score = self._flop_checker(exit_ratio, final_ratio, self.exiting_flops_ratio)
         
         return total_acc, (exit_acc, final_acc), (exit_ratio, final_ratio), score
     
@@ -187,7 +187,9 @@ class EarlyExitInspector():
 def plotter(total_acc_list, exit2_acc_list, final_acc_list, \
             condition2_list, exit2_ratio_list, score_list, \
             baseline_acc1, baseline_acc2, max_logit_co, max_logit_inco, entropy_co, entropy_inco, name='test'):
-    fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, figsize=(10, 15))
+    #fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, figsize=(10, 15))
+    fig, ((ax1, ax2), (ax5, ax6)) = plt.subplots(2, 2, figsize=(8, 15))
+    
     fig.suptitle(name, fontsize=20)
 
     ax1.set(title='Exiting Ratio vs Total Accuracy', xlabel='Exit Ratio', ylabel='Accuracy')
@@ -207,6 +209,7 @@ def plotter(total_acc_list, exit2_acc_list, final_acc_list, \
     ax2.legend(['baseline(%0.4f)' % baseline_acc1, 'trade-off'])
     ax2.grid()
     
+    """
     ax3.set(title='Exiting Ratio vs Large Accurcy', xlabel='Exit Ratio', ylabel='Exit Accuracy')
     ax3.axhline(y=baseline_acc1, color='black', linestyle='--', alpha=0.6)
     ax3.plot(exit2_ratio_list, final_acc_list, marker='.')
@@ -221,18 +224,19 @@ def plotter(total_acc_list, exit2_acc_list, final_acc_list, \
     ax4.set_ylim(0.7, 1.0)
     ax4.legend(['trade-off'])
     ax4.grid()
-
+    """
+    
     ax5.set(title='Max softmax outputs(Exit Module)', xlabel='softmax max value', ylabel='data count')
     ax5.hist(max_logit_co, color='brown', bins=[x*0.05 for x in range(21)], alpha=0.5)
     ax5.hist(max_logit_inco, color='gray', bins=[x*0.05 for x in range(21)], alpha=0.5)
-    ax5.set_ylim(0, 4000)
+    ax5.set_ylim(0, 2500)
     ax5.legend(['correct samples', 'incorrect samples'])
     ax5.grid()
     
     ax6.set(title='Entropy of Top10 softmax outputs(Exit Module)', xlabel='Top10 softmax entropy', ylabel='data count')
     ax6.hist(entropy_co, color='brown', bins=[x*0.05 for x in range(45)], alpha=0.5)
     ax6.hist(entropy_inco, color='gray', bins=[x*0.05 for x in range(45)], alpha=0.5)
-    ax6.set_ylim(0, 1600)
+    ax6.set_ylim(0, 1200)
     ax6.legend(['correct samples', 'incorrect samples'])
     ax6.grid()
     
