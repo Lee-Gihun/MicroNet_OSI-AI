@@ -1,7 +1,7 @@
 
 # MicroNet Challenge (Team: OSI AI)
 
-Our team build a network having `80.06%` accuracy on cifar-100 with `0.5322` Parameter Storage score and `30.4957` Math Operations scroe, achieveing the MicroNet Challenge score of `0.006552`.
+Our team build a network having `80.03%` accuracy on cifar-100 with `0.003031` Parameter Storage score and `0.002753` Math Operations scroe, achieveing the MicroNet Challenge score of `0.005784`.
 
 ## 1. Overview
 The below figure is our proposed architecture for the cifar-100 dataset. The numbers described above the arrows are the shape of each input and output.  
@@ -131,21 +131,21 @@ This phenomena have reproduced in most of our experiment and it was not helpful 
 The table below describes the number of parameters and the number of operations of our model on a 32-bit basis, which is obtained by hand.  
 Our score is calculated on 16-bit input, parameter, and 32-bit accumulator.
 - Before pruning:
-    - Parameter Storage (Score): 
-    - Math Operation (Score): 
-    - Therefore, score is : 0.014472
+    - Parameter Storage (Score): 0.006449
+    - Math Operation (Score): 0.008328
+    - Therefore, score is 0.014777
 - After pruning:
-    - 50% pruning
+    - 64% pruning
     - Mask storage for pruning is included as 2-bits.
-    - Parameter Storage (Score): 0.003645
-    - Math Operation (Score): 0.002907
-    - Therefore, score is 0.006552
+    - Parameter Storage (Score): 0.002748
+    - Math Operation (Score): 0.003148
+    - Therefore, score is 0.005896
 - After Early Exiting:
-    - Threshold confidence: 0.9
-    - Early Exiting Ratio: 
-    - Parameter Storage (Score): 
-    - Math Operation (Score): 
-    - Therefore, score is   
+    - Threshold confidence: 0.85
+    - Early Exiting Ratio: 32.17%
+    - Parameter Storage (Score): 0.003031
+    - Math Operation (Score): 0.002753
+    - Therefore, score is 0.005784
 
 | <div style="width:70px">Input</div> | Operator         |  k  |  s  |  e  |  i  |  o  |  se  | Parameter Storage    | MULTI      |  ADD       | Math Operations |
 | :---:                               | :---:            |:---:|:---:|:---:|:---:|:---:| :---:| :---:                | :---:      | :---:      | :---:           |
@@ -183,3 +183,4 @@ Our score is calculated on 16-bit input, parameter, and 32-bit accumulator.
 ## 4. Reproduce Process
 * `python main.py ./Config/reproduce.json` # For reproducing
 * `pthonn main.py ./Config/test.json` # For testing our final checkpoint
+* You can access checkpoints for all steps at https://bit.ly/2pYSFYg
