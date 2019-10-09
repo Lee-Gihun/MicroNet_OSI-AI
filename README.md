@@ -181,6 +181,6 @@ Our score is calculated on 16-bit input, parameter, and 32-bit accumulator.
 <img src="./src/MathOps.png" width="1200"/>
 
 ## 4. Reproduce Process
-* `python main.py ./Config/reproduce.json` # For reproducing
-* `pthonn main.py ./Config/test.json` # For testing our final checkpoint
+* `./reproduce.sh` # For reproducing, run bash file.
+* `pthon main.py ./Config/test.json` # For testing our final checkpoint
 * You can access checkpoints for all steps at https://bit.ly/2pYSFYg
