@@ -32,7 +32,7 @@
     },
     "trainhandler": {
         "seed": 1111,
-        "device": "cuda:1",
+        "device": "cuda:0",
         "path": "./results",
         "name": "baseline_iterative_sparsity_64.00",
         "num_epochs": 1200,
