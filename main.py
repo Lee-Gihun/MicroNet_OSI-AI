@@ -156,10 +156,13 @@ def __get_sparsity(param, round, prev_sparsity):
     "returns pruning ratio per round"
     assert param.sparsity > prev_sparsity
     
-    if param.gradually:
-        round_sparsity = prev_sparsity + (param.sparsity - prev_sparsity) * ((1 / param.rounds) * (round + 1))
+    if param.get('prune_policy', None):
+        round_sparsity = param.prune_policy[round]
     else:
-        round_sparsity = prev_sparsity + math.pow((param.sparsity - prev_sparsity), ((1 / param.rounds) * (round + 1)))
+        if param.gradually:
+            round_sparsity = prev_sparsity + (param.sparsity - prev_sparsity) * ((1 / param.rounds) * (round + 1))
+        else:
+            round_sparsity = prev_sparsity + math.pow((param.sparsity - prev_sparsity), ((1 / param.rounds) * (round + 1)))
 
     return round_sparsity
     
@@ -228,6 +231,18 @@ def _pruning(opt, train_handler, blocks_args, global_params):
 
     return blocks_params_flops
 
+"""
+def _stabilize_batch_norm(opt, train_handler):
+    # flowing non mixup data can stabilize batch norm running_mean and running_var buffer
+    train_handler.mixup =  False
+    train_handler.optimizer = OPTIMIZER[opt.optimizer.algo](train_handler.model.parameters(), lr=0)
+        
+    train_handler.train_model(num_epochs=opt.model.stabilize.num_epochs)
+    train_handler.test_model(pretrained=True)
+    
+    return train_handler
+"""
+
 def __get_early_exit_model(opt, train_handler, blocks_args, global_params, blocks_res_channel):
     "build early exiting model and its train handler"
     param = opt.early_exit.param
@@ -264,6 +279,7 @@ def __set_trainhandler(opt, train_handler):
     train_handler.init_states['scheduler'] = copy.deepcopy(train_handler.scheduler.state_dict())
     train_handler.init_states['model'] = copy.deepcopy(train_handler.model.state_dict())
     
+    """
     # valid_size should be same with valid_size used in backbone model
     if not opt.early_exit.data.autoaugment:
         param = opt.data
@@ -274,6 +290,7 @@ def __set_trainhandler(opt, train_handler):
         dataloaders, dataset_sizes = _get_dataset(param)
         
         train_handler.dataloaders, train_handler.dataset_sizes = dataloaders, dataset_sizes
+    """
     
     return train_handler
 
@@ -338,13 +355,27 @@ def _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_ex
         _, _, exit_percent = train_handler.test_model()
         
         _count_early_exit_params_flops(global_params, early_exit, round_sparsity, blocks_params_flops, exit_percent)
+        
+def _early_exit_inspector(opt, train_handler):
+    inspector = EarlyExitInspector(train_handler.model, device=opt.trainhandler.device, \
+                                   flops_score=opt.early_exit.inspection.flops_score)
+    (max_logit_co, max_logit_inco), (entropy_co, entropy_inco) = \
+    inspector._logit_dist_inspector(train_handler.dataloaders, train_handler.dataset_sizes, phase='test')
+
+    total_acc_list, (exit_acc_list, final_acc_list), condition_list, (exit_ratio_list, final_ratio_list),\
+    score_list, baseline_acc1, baseline_acc2  = inspector.score_validator(\
+        train_handler.dataloaders, train_handler.dataset_sizes, condition_range=(0.5, 1.0), grid=opt.early_exit.inspection.grid, phase='test')
+
+    plotter(total_acc_list, exit_acc_list, final_acc_list, condition_list, exit_ratio_list, \
+            score_list, baseline_acc1, baseline_acc2, max_logit_co, max_logit_inco, entropy_co, entropy_inco, train_handler.name)    
+    return
 
 def _early_exit(opt, train_handler, blocks_args, global_params, blocks_params_flops, blocks_res_channel):
     "uses early exiting for the model"
     train_handler, early_exit = __get_early_exit_model(opt, train_handler, blocks_args, global_params, blocks_res_channel)
     
     train_handler = __set_trainhandler(opt, train_handler)
-    # pretrained
+    
     if not opt.early_exit.pretrained.enabled:
         train_handler.train_model(num_epochs=opt.early_exit.num_epochs)
         _, _, exit_percent = train_handler.test_model()
@@ -360,13 +391,16 @@ def _early_exit(opt, train_handler, blocks_args, global_params, blocks_params_fl
         
         _, _, exit_percent = train_handler.test_model(pretrained=True)
         sparsity = opt.early_exit.pretrained.sparsity / 100
-        
+            
     # counting
     _count_early_exit_params_flops(global_params, early_exit, sparsity, blocks_params_flops, exit_percent)
-        
+    
     # TODO: pruning about early_exit
     if opt.early_exit.prune.enabled:
         _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_exit, blocks_params_flops)
+    
+    if opt.early_exit.inspection.enabled:
+        _early_exit_inspector(opt, train_handler)
 
 def run(opt):
     """runs the overall process"""
@@ -396,6 +430,11 @@ def run(opt):
     
     if opt.model.prune.enabled:
         blocks_params_flops = _pruning(opt, train_handler, blocks_args, global_params)
+
+    """
+    if opt.model.stabilize.enabled:
+        train_handler = _stabilize_batch_norm(opt, train_handler)
+    """
         
     if opt.early_exit.enabled:
         _early_exit(opt, train_handler, blocks_args, global_params, blocks_params_flops, blocks_res_channel)

@@ -34,7 +34,7 @@
         "seed": 1111,
         "device": "cuda:1",
         "path": "./results",
-        "name": "baseline_seed_1111_sparsity60",
+        "name": "baseline_seed_1111_sparsity64",
         "num_epochs": 1200,
         "mixup": {
             "enabled": true,
@@ -57,8 +57,8 @@
         },
         "pretrained": {
             "enabled": true,
-            "sparsity": 60,
-            "fpath": "./results/trained_models/baseline_seed_1111_iterative_sparsity_60.00"
+            "sparsity": 64,
+            "fpath": "./results/trained_models/baseline_seed_1111_iterative_sparsity_64.00"
         },
         "prune": {
             "enabled": false,
@@ -81,16 +81,12 @@
     },
     "early_exit": {
         "enabled": true,
-        "name": "_early_exit_block3_testing",
+        "name": "_early_exit_testing",
         "param": {
-            "final_channels": 150,
+            "final_channels": 136,
             "use_bias": false,
-            "thres": 0.5,
-            "blocks_idx": 3
-        },
-        "data": {
-            "autoaugment": false,
-            "root": "./data/cifar100/valid0_batch128_not_autoaugment"
+            "thres": 0.8,
+            "blocks_idx": 4
         },
         "criterion": {
             "soft_label_smoothing": true
@@ -101,13 +97,13 @@
             "momentum": 0.9
         },
         "scheduler": {
-            "T_max": 300
+            "T_max": 800
         },
-        "num_epochs": 1,
+        "num_epochs": 800,
         "pretrained": {
-            "enabled": false,
+            "enabled": true,
             "sparsity": 0,
-            "fpath": "./results/trained_models/baseline_seed_1111_early_exit_block3"
+            "fpath": "./results/trained_models/baseline_seed_1111_sparsity63_early_exit_64testing"
         },
         "prune": {
             "enabled": false,
@@ -126,6 +122,12 @@
             "scheduler": {
                 "T_max": 600
             }
+        },
+        "inspection": {
+            "enabled": false,
+            "grid" : 0.01,
+            "flops_score" : 0.3891
+            
         }
     }
 }

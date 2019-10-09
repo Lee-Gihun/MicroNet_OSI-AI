@@ -31,7 +31,6 @@ class LabelSmoothingLoss(nn.Module):
 class SoftLabelSmoothingLoss(nn.Module):
     def __init__(self, classes=100, smoothing=0.0, dim=-1):
         super(SoftLabelSmoothingLoss, self).__init__()
-        self.CE = nn.CrossEntropyLoss(reduction='none')
         self.confidence = 1.0 - smoothing
         self.smoothing = smoothing
         self.cls = classes
@@ -40,6 +39,7 @@ class SoftLabelSmoothingLoss(nn.Module):
     def forward(self, output, target):
         logits = F.softmax(output, dim=1)
         max_softval, _ = torch.max(logits, dim=1)
+        target_softval = logits[range(logits.shape[0]), target]
         log_logits = logits.log()
         
         with torch.no_grad():
@@ -48,7 +48,9 @@ class SoftLabelSmoothingLoss(nn.Module):
             smooth_target.scatter_(1, target.data.unsqueeze(1), self.confidence)
         
         loss = torch.sum(-smooth_target * log_logits, dim=self.dim)
-        loss = loss * (1 + max_softval)
+        #loss = loss * (1 + max_softval)
+        #loss = loss * (1 + target_softval)
+        loss = loss * (1 + max_softval + target_softval)
         loss = loss.mean()
 
         return loss       
