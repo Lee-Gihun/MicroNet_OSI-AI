@@ -6,16 +6,6 @@ Our team build a network having `80.03%` accuracy on cifar-100 with `0.003031` P
 ## 1. Overview
 The below figure is our proposed architecture for the cifar-100 dataset. The numbers described above the arrows are the shape of each input and output.  
 Our architecture consists of:  
-<<<<<<< HEAD
-1. Upsample Layer
-2. Stem_Conv
-3. 10 \* MobileNet V2 Convolution Block (MBConvBlock)
-4. Head_Conv
-5. Global Average Pooling
-6. Fully Connected Layer  
-
-The details of Stem_Conv, Head_Conv, and MBConvBlock are described below the 'Main network'.
-=======
 1. Main Network
     1. Upsample Layer
     2. Stem_Conv
@@ -26,7 +16,6 @@ The details of Stem_Conv, Head_Conv, and MBConvBlock are described below the 'Ma
 2. Early Exiting Module
 
 The details of Stem_Conv, Head_Conv, MBConvBlock, and Early Exiting Module are described below the 'Main network'.
->>>>>>> develop
 * In addition, in MBConvBlock\[0\], there is no the first three layers (Expansion_Conv, BatchNorm, Activation Function) in a block since there is no expansion when e=1.
 
 <img src="./src/overview.png" width="1200"/>
@@ -75,11 +64,7 @@ First of all, we search for a baseline architecture suitable for cifar-100 data 
 * <b>[Auto augmentation](https://arxiv.org/pdf/1805.09501.pdf)</b>: We search 25 sub-policies for cifar-100 data set based on the augmentation search space in `AutoAugment` except `Cutout` and `SamplePairing`. Please refer to `AutoML_autoaug.py` for the process and `data_utils/autoaugment.py` for the policy we've got.
 * <b>[Mixup](https://arxiv.org/pdf/1710.09412.pdf)</b>: We add a Mixup technique with alpha of 1, which is the hyperparameter for beta-distribution, after auto augmentation. We thought that this augmentation can help inter-exploration between arbitrary two classes.
 * <b>[No bias decay](https://arxiv.org/pdf/1812.01187.pdf)</b>: We do not apply weight decay regularizer to biases. Since these part has a small percentage of the total, it can make underfitting.
-<<<<<<< HEAD
-* <b>[Swish activation function](https://arxiv.org/pdf/1710.05941.pdf)</b>: We use a <i>Swish</i> activation function with beta of 1, which is x \* sigmoid(x). This activation function is usually interpreted as a self-gate activation.
-=======
 * <b>[Swish activation function](https://arxiv.org/pdf/1710.05941.pdf)</b>: We use a <i>Swish</i> activation function with beta of 1, which is x * sigmoid(x). This activation function is usually interpreted as a self-gate activation.
->>>>>>> develop
 * <b>[Ghost batch normalization](https://arxiv.org/pdf/1705.08741.pdf)</b>: We use ghost batch normalization, where batch is divided into four smaller ghost batch in our case to match the splited batch size to 32, instead of plain batch normalization.
 * <b>[Label smoothing](https://arxiv.org/pdf/1512.00567.pdf)</b>: We use a label smoothing technique through which the probability of the correct label is assinged as 0.7, and 0.3/99 for the others.
 * <b>[Cosine annealing scheduler](https://arxiv.org/pdf/1608.03983.pdf)</b>: We use cosine annealing scheduler for adaptive learning rate, and set a period of one cycle as the number of epochs. Hence, there is no restart process.
@@ -165,22 +150,6 @@ Our score is calculated on 16-bit input, parameter, and 32-bit accumulator.
 | <div style="width:70px">Input</div> | Operator         |  k  |  s  |  e  |  i  |  o  |  se  | Parameter Storage    | MULTI      |  ADD       | Math Operations |
 | :---:                               | :---:            |:---:|:---:|:---:|:---:|:---:| :---:| :---:                | :---:      | :---:      | :---:           |
 | 32\*32\*3                     | Upsample(nearest)| -   | -   | -   | -   | -   | -    | 0                    | 11,907     | 0          | 11,907          |
-<<<<<<< HEAD
-| 63\*63\*3                    | Stem\_Conv2d     | 3   | 2   | -   | 3   | 24  | -    | 648                  | 691,920    | 622,728    | 1,314,648       |
-| 31\*31\*24                    | MBConvBlock\[0\] | 3   | 1   | 1   | 24  | 16  | 0.20 | 820                  | 669,132    | 584,484    | 1,253,616       |
-| 31\*31\*16                    | MBConvBlock\[1\] | 3   | 1   | 6   | 16  | 24  | 0.20 | 5,379                | 5,167,209  | 4,590,315  | 9,757,524       |
-| 31\*31\*24                 | MBConvBlock\[2\] | 3   | 2   | 6   | 24  | 40  | 0.20 | 11,812               | 5,455,164  | 4,933,372  | 10,388,536      |
-| 15\*15\*40                 | MBConvBlock\[3\] | 3   | 1   | 6   | 40  | 40  | 0.20 | 25,448               | 5,188,584  | 4,908,848  | 10,097,432      |
-| 15\*15\*40                   | MBConvBlock\[4\] | 3   | 1   | 6   | 40  | 48  | 0.20 | 27,368               | 5,620,584  | 5,285,048  | 10,905,632      |
-| 15\*15\*48                   | MBConvBlock\[5\] | 3   | 1   | 6   | 48  | 64  | 0.20 | 40,329               | 8,300,475  | 7,896,393  | 16,196,868      |
-| 15\*15\*64                   | MBConvBlock\[6\] | 3   | 1   | 6   | 64  | 64  | 0.20 | 62,220               | 12,452,004 | 12,004,428 | 24,456,432      |
-| 15\*15\*64                     | MBConvBlock\[7\] | 3   | 2   | 6   | 64  | 80  | 0.20 | 68,364               | 7,549,092  | 7,228,348  | 14,777,440      |
-| 7\*7\*80                    | MBConvBlock\[8\] | 3   | 1   | 6   | 80  | 80  | 0.20 | 96,976               | 4,156,368  | 4,033,376  | 8,189,744       |
-| 7\*7\*80                     | MBConvBlock\[9\] | 3   | 1   | 6   | 80  | 96  | 0.20 | 104,456              | 4,532,688  | 4,385,392  | 8,918,080       |
-| 7\*7\*96                   | Head\_Conv2d     | 1   | 1   | -   | 96  | 136 | -    | 13,056               | 659,736    | 639,744    | 1,299,480       |
-| 7\*7\*136                    | AveragePool      | 7   | -   | -   | -   | -   | -    | 0                    | 136        | 6,528      | 6,664           |
-| 136                              | FullyConnected   | -   | -   | -   | -   | -   | _    | 13,700               | 13,600     | 13,600     | 27,200          |
-=======
 | 63\*63\*3                     | Stem\_Conv2d     | 3   | 2   | -   | 3   | 24  | -    | 648                  | 691,920    | 622,728    | 1,314,648       |
 | 31\*31\*24                    | MBConvBlock\[0\] | 3   | 1   | 1   | 24  | 16  | 0.20 | 820                  | 669,132    | 584,484    | 1,253,616       |
 | 31\*31\*16                    | MBConvBlock\[1\] | 3   | 1   | 6   | 16  | 24  | 0.20 | 5,379                | 5,167,209  | 4,590,315  | 9,757,524       |
@@ -195,7 +164,6 @@ Our score is calculated on 16-bit input, parameter, and 32-bit accumulator.
 | 7\*7\*96                     | Head\_Conv2d     | 1   | 1   | -   | 96  | 136 | -    | 13,056               | 659,736    | 639,744    | 1,299,480       |
 | 7\*7\*136                    | AveragePool      | 7   | -   | -   | -   | -   | -    | 0                    | 136        | 6,528      | 6,664           |
 | 136                               | FullyConnected   | -   | -   | -   | -   | -   | _    | 13,700               | 13,600     | 13,600     | 27,200          |
->>>>>>> develop
 | 100                               | -                | -   | -   | -   | -   | -   | -    | -                    | -          | -          | -               |
 | Total                               | -                | -   | -   | -   | -   | -   | -    | 470,776              | 60,456,692 | 57,132,604 | 117,589,296     |
 
