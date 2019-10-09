@@ -156,13 +156,10 @@ def __get_sparsity(param, round, prev_sparsity):
     "returns pruning ratio per round"
     assert param.sparsity > prev_sparsity
     
-    if param.get('prune_policy', None):
-        round_sparsity = param.prune_policy[round]
+    if param.gradually:
+        round_sparsity = prev_sparsity + (param.sparsity - prev_sparsity) * ((1 / param.rounds) * (round + 1))
     else:
-        if param.gradually:
-            round_sparsity = prev_sparsity + (param.sparsity - prev_sparsity) * ((1 / param.rounds) * (round + 1))
-        else:
-            round_sparsity = prev_sparsity + math.pow((param.sparsity - prev_sparsity), ((1 / param.rounds) * (round + 1)))
+        round_sparsity = prev_sparsity + math.pow((param.sparsity - prev_sparsity), ((1 / param.rounds) * (round + 1)))
 
     return round_sparsity
     

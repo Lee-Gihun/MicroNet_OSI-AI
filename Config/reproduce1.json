@@ -34,7 +34,7 @@
         "seed": 1111,
         "device": "cuda:0",
         "path": "./results",
-        "name": "baseline_iterative_sparsity_64.00",
+        "name": "baseline",
         "num_epochs": 1200,
         "mixup": {
             "enabled": true,
@@ -56,16 +56,16 @@
             "num_classes": 100
         },
         "pretrained": {
-            "enabled": true,
-            "sparsity": 64,
-            "fpath": "./results/trained_models/baseline_iterative_sparsity_64.00"
+            "enabled": false,
+            "sparsity": 0,
+            "fpath": "./results/trained_models/baseline"
         },
         "prune": {
-            "enabled": false,
+            "enabled": true,
             "weight_reset": false,
             "method": "weight",
-            "sparsity": 64,
-            "rounds": 2,
+            "sparsity": 50,
+            "rounds": 5,
             "gradually": true,
             "norm": true,
             "num_epochs": 600,
@@ -80,7 +80,7 @@
         }
     },
     "early_exit": {
-        "enabled": true,
+        "enabled": false,
         "name": "_early_exit",
         "param": {
             "final_channels": 136,
@@ -101,7 +101,7 @@
         },
         "num_epochs": 800,
         "pretrained": {
-            "enabled": true,
+            "enabled": false,
             "sparsity": 0,
             "fpath": "./results/trained_models/baseline_iterative_sparsity_64.00_early_exit"
         },
