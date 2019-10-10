@@ -99,7 +99,7 @@
         "scheduler": {
             "T_max": 800
         },
-        "num_epochs": 800,
+        "num_epochs": 1,
         "pretrained": {
             "enabled": false,
             "sparsity": 0,
@@ -124,7 +124,7 @@
             }
         },
         "inspection": {
-            "enabled": true,
+            "enabled": false,
             "grid" : 0.01
         }
     }

@@ -273,7 +273,8 @@ def __set_trainhandler(opt, train_handler):
     train_handler = __update_states(opt, train_handler, opt.early_exit.optimizer, opt.early_exit.scheduler)
 
     train_handler.init_states['optimizer'] = copy.deepcopy(train_handler.optimizer.state_dict())
-    train_handler.init_states['scheduler'] = copy.deepcopy(train_handler.scheduler.state_dict())
+    if train_handler.scheduler:
+        train_handler.init_states['scheduler'] = copy.deepcopy(train_handler.scheduler.state_dict())
     train_handler.init_states['model'] = copy.deepcopy(train_handler.model.state_dict())
     
     """
@@ -335,6 +336,7 @@ def _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_ex
     masks = None
     param = opt.early_exit.prune
     prev_sparsity = opt.early_exit.pretrained.sparsity if opt.early_exit.pretrained.enabled else 0
+    name = train_handler.name
         
     for round in range(param.rounds):
         round_sparsity = __get_sparsity(param, round, prev_sparsity)
@@ -359,6 +361,9 @@ def _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_ex
     return exiting_flops_ratio
         
 def _early_exit_inspector(opt, train_handler, exiting_flops_ratio):
+    if not os.path.isdir('./results/inspection'):
+        os.makedirs('./results/inspection')
+
     inspector = EarlyExitInspector(train_handler.model, device=opt.trainhandler.device, \
                                    exiting_flops_ratio=exiting_flops_ratio)
     (max_logit_co, max_logit_inco), (entropy_co, entropy_inco) = \
@@ -420,13 +425,18 @@ def run(opt):
         print('Pretrained model is loaded')
         print('=' * 50)
         blocks_params_flops, blocks_res_channel = _count_params_flops(opt, blocks_args, global_params, sparsity=opt.model.pretrained.sparsity)
-        initial_model = torch.load(os.path.join(opt.model.pretrained.fpath, 'initial_model.pth'), map_location=opt.trainhandler.device)
-        train_handler.init_states['model'] = copy.deepcopy(initial_model)
         
-        fpath = opt.model.pretrained.fpath
-                    
-        pretrained_dict = torch.load(os.path.join(fpath, 'trained_model.pth'), map_location=opt.trainhandler.device)
-        train_handler.model.load_state_dict(pretrained_dict, strict=False)
+        if not opt.model.pretrained.get('fpath', None):
+            print('Skip loading intermediate trained weights and just check final checkpoint')
+            print('=' * 50)
+        else:
+            initial_model = torch.load(os.path.join(opt.model.pretrained.fpath, 'initial_model.pth'), map_location=opt.trainhandler.device)
+            train_handler.init_states['model'] = copy.deepcopy(initial_model)
+
+            fpath = opt.model.pretrained.fpath
+
+            pretrained_dict = torch.load(os.path.join(fpath, 'trained_model.pth'), map_location=opt.trainhandler.device)
+            train_handler.model.load_state_dict(pretrained_dict, strict=False)
 
     train_handler.test_model(pretrained=opt.model.pretrained.enabled)
     
