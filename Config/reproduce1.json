@@ -35,7 +35,7 @@
         "device": "cuda:0",
         "path": "./results",
         "name": "baseline",
-        "num_epochs": 1,
+        "num_epochs": 1200,
         "mixup": {
             "enabled": true,
             "alpha": 1.0
@@ -68,7 +68,7 @@
             "rounds": 5,
             "gradually": true,
             "norm": true,
-            "num_epochs": 1,
+            "num_epochs": 600,
             "optimizer": {
                 "lr": 0.13,
                 "weight_decay": 1e-5,
