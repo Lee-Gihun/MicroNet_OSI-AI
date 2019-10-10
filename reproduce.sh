@@ -11,3 +11,6 @@ python ./main.py ./Config/reproduce3.json
 
 echo "early exiting module training"
 python ./main.py ./Config/reproduce4.json
+
+echo "pruning early exiting module to 50%"
+python ./main.py ./Config/reproduce5.json

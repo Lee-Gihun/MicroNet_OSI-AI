@@ -85,7 +85,7 @@
         "param": {
             "final_channels": 136,
             "use_bias": false,
-            "thres": 0.85,
+            "thres": 0.84,
             "blocks_idx": 4
         },
         "criterion": {
@@ -101,26 +101,26 @@
         },
         "num_epochs": 800,
         "pretrained": {
-            "enabled": false,
+            "enabled": true,
             "sparsity": 0,
             "fpath": "./results/trained_models/baseline_iterative_sparsity_64.00_early_exit"
         },
         "prune": {
-            "enabled": false,
+            "enabled": true,
             "weight_reset": false,
             "method": "weight",
-            "sparsity": 20,
-            "rounds": 2,
+            "sparsity": 50,
+            "rounds": 5,
             "gradually": true,
             "norm": true,
-            "num_epochs": 400,
+            "num_epochs": 600,
             "optimizer": {
                 "lr": 0.13,
                 "weight_decay": 1e-5,
                 "momentum": 0.9
             },
             "scheduler": {
-                "T_max": 400
+                "T_max": 600
             }
         },
         "inspection": {

@@ -335,7 +335,6 @@ def _early_exit_pruning(opt, train_handler, blocks_args, global_params, early_ex
     masks = None
     param = opt.early_exit.prune
     prev_sparsity = opt.early_exit.pretrained.sparsity if opt.early_exit.pretrained.enabled else 0
-    name = train_handler.name + opt.early_exit.name
         
     for round in range(param.rounds):
         round_sparsity = __get_sparsity(param, round, prev_sparsity)
@@ -393,7 +392,7 @@ def _early_exit(opt, train_handler, blocks_args, global_params, blocks_params_fl
         train_handler.model.load_state_dict(pretrained_dict, strict=False)
         
         _, _, exit_percent = train_handler.test_model(pretrained=True)
-        sparsity = opt.early_exit.pretrained.sparsity / 100
+        sparsity = opt.early_exit.pretrained.sparsity
             
     # counting
     exiting_flops_ratio = _count_early_exit_params_flops(global_params, early_exit, sparsity, blocks_params_flops, exit_percent)
