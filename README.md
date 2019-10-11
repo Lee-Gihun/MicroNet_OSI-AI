@@ -53,6 +53,15 @@ The details of Stem_Conv, Head_Conv, MBConvBlock, and Early Exiting Module are d
     * Loss function: soft smoothing loss
     * Learning rate scheduler: cosine annealing scheduler (T_max=800, without restart)
     * Augmentation: \[random crop 32*32 with padding of 4, random horizontal flip(p=0.5), normalization\]
+* <b>Pruning Early Exiting</b>
+    * Pruning method(one shot/iterative): iterative
+    * Desired sparsity/Pruning ratio per iteration: 50% / 10%\*5
+    * Epochs # per pruning iteration: 600
+    * Optimizer: sgd (lr=0.13, weight_decay=1e-5, momuntum=0.9)
+    * Loss function: cross entropy loss with label smoothing (smoothing factor=0.3)
+    * Learning rate scheduler: cosine annealing scheduler (T_max=600, without restart)
+    * Weight reset: False
+    * Normalization: Layer-wise magnitude normalization
 
 ### 2-1. Architecture Search
 First of all, we search for a baseline architecture suitable for cifar-100 data set based on the [EfficientNet](https://arxiv.org/pdf/1905.11946.pdf) architecture using autoML. The search process is as follows:
@@ -150,6 +159,14 @@ Our score is calculated on 16-bit input, parameter, and 32-bit accumulator.
     - Parameter Storage (Score): 0.003031
     - Math Operation (Score): 0.002753
     - Therefore, score is 0.005784
+- After Pruning Early Exiting:
+    - 50% pruning
+    - Mask storage for pruning is included as 2-bits.
+    - Threshold confidence: 0.85
+    - Early Exiting Ratio: 29.29%
+    - Parameter Storage (Score): 0.002908
+    - Math Operation (Score): 0.002696
+    - Therefore, score is 0.005604
 
 | <div style="width:70px">Input</div> | Operator         |  k  |  s  |  e  |  i  |  o  |  se  | Parameter Storage    | MULTI      |  ADD       | Math Operations |
 | :---:                               | :---:            |:---:|:---:|:---:|:---:|:---:| :---:| :---:                | :---:      | :---:      | :---:           |
