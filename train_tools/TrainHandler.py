@@ -5,6 +5,7 @@ from .topk_acc import *
 
 import copy
 import time
+import math
 import os
 
 __all__ = ['TrainHandler']
@@ -345,9 +346,9 @@ class TrainHandler():
             test_loss, test_acc, topk_avg = self._test_phase(topk)
 
         # Test result
-        print('[{}] Loss - {:.4f}, Acc - {:2.2f}%'.format('Test', test_loss, test_acc * 100))
+        print('[{}] Loss - {:.4f}, Acc - {:2.2f}%'.format('Test', test_loss, math.floor(test_acc * 10000) / 100))
         for k, k_avg in zip(topk, topk_avg):
-            print('[{}] Top {} accuracy: {:2.2f}% '.format('Test', k, round(k_avg.item(), 2)))
+            print('[{}] Top {} accuracy: {:2.2f}% '.format('Test', k, math.floor(k_avg.item() * 100) / 100))
         print()
         
         if not pretrained:
