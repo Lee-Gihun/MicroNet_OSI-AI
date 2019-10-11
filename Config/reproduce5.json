@@ -85,7 +85,7 @@
         "param": {
             "final_channels": 136,
             "use_bias": false,
-            "thres": 0.84,
+            "thres": 0.85,
             "blocks_idx": 4
         },
         "criterion": {
