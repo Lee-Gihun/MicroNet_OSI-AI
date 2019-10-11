@@ -1,7 +1,7 @@
 
 # MicroNet Challenge (Team: OSI AI)
 
-Our team build a network having `80.03%` accuracy on cifar-100 with `0.003031` Parameter Storage score and `0.002753` Math Operations scroe, achieveing the MicroNet Challenge score of `0.005784`.
+Our team build a network having `80.04%` accuracy on cifar-100 with `0.0029` Parameter Storage score and `0.0027` Math Operations scroe, achieveing the MicroNet Challenge score of `0.0056`.
 
 ## 1. Overview
 The below figure is our proposed architecture for the cifar-100 dataset. The numbers described above the arrows are the shape of each input and output.  
@@ -94,6 +94,7 @@ To make this idea come true, we designed early exiting module in the following s
         * Except not using label smoothing, epochs # is 800, and using <b>soft smoothing loss function\*</b>.
 3. We introduce `threshold confidence` to decide when the samples exit. If the maximum probability for a certain class via early exiting module is greater than threshold confidence, the sample exit and do not go to the end of the main network.
 4. We checked the trade-off by changing the exiting position.
+5. We selected the best exiting position and pruned `early exiting module`.
 
 \* <b>soft smoothing loss function</b>
 - We propose a new loss function, a new confidence-aware loss function. Generally, the maximum softmax output value from the network is considered as confidence of the inference result. However, many papers pointed out that it shows over-confidence that outputs too large confidence values even for the uncertain samples.
@@ -118,6 +119,9 @@ e.g.) If the exiting point is MBConvBlock\[2\],
 * Total Path FLOPs = Main Network FLOPs + Early Exiting FLOPs  
 
 \** The accuracy in parentheses is the accuracy with threshold confidence of 0.0. (i.e., all samples exit via the early exiting module.)
+
+At last, we add `early exiting module` on MBConvBlock 4th position of 64% pruned model.  
+And also, we pruned that module to 50% sparsity and confirm that there is no accuracy drop in 0.85 confidence level.
 
 \* <b>Batchnorm Stablization Phenomena</b>  
 When an early exiting module is trained, the main network is frozen but batchnrom buffers(running mean and running variance) in the main network are updated during early exiting module training.  
