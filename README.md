@@ -142,6 +142,7 @@ This phenomena have reproduced in most of our experiment and it was not helpful 
 
 ## 3. Scoring metric
 The table below describes the number of parameters and the number of operations of our model on a 32-bit basis, which is obtained by hand.  
+- This table is calculated without counting Batchnorm Params & Ops. However, we consider Batchnorm counting as the bias of the previous convolution layer when we get the score.
 Our score is calculated on 16-bit input, parameter, and 32-bit accumulator.
 - Before pruning:
     - Parameter Storage (Score): 0.006534
