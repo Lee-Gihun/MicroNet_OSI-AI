@@ -84,7 +84,7 @@
         "name": "_early_exit",
         "param": {
             "final_channels": 136,
-            "use_bias": false,
+            "use_bias": true,
             "thres": 0.85,
             "blocks_idx": 4
         },

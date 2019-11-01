@@ -103,7 +103,7 @@ def _count_params_flops(opt, blocks_args, global_params, sparsity=0):
     last_ops = {'out_channel': 150, 'num_classes': global_params.num_classes}
     activation = global_params.activation
     input_size = int(math.ceil(32 * global_params.resolution_coefficient))
-    use_bias = False
+    use_bias = True
     
     counter = MicroNetCounter(conv_stem, blocks_args, global_params, last_ops, activation, input_size, use_bias, add_bits_base=32, mul_bits_base=32)
 
