@@ -1,7 +1,7 @@
 
 # MicroNet Challenge (Team: OSI AI)
 
-Our team build a network having `80.04%` accuracy on cifar-100 with `0.0029` Parameter Storage score and `0.0027` Math Operations scroe, achieveing the MicroNet Challenge score of `0.0056`.
+Our team build a network having `80.04%` accuracy on cifar-100 with `0.0030` Parameter Storage score and `0.0028` Math Operations scroe, achieveing the MicroNet Challenge score of `0.0058`.
 
 ## 1. Overview
 The below figure is our proposed architecture for the cifar-100 dataset. The numbers described above the arrows are the shape of each input and output.  
@@ -144,29 +144,29 @@ This phenomena have reproduced in most of our experiment and it was not helpful 
 The table below describes the number of parameters and the number of operations of our model on a 32-bit basis, which is obtained by hand.  
 Our score is calculated on 16-bit input, parameter, and 32-bit accumulator.
 - Before pruning:
-    - Parameter Storage (Score): 0.006449
-    - Math Operation (Score): 0.008328
-    - Therefore, score is 0.014777
+    - Parameter Storage (Score): 0.006534
+    - Math Operation (Score): 0.008447
+    - Therefore, score is 0.014981
 - After pruning:
     - 64% pruning
-    - Mask storage for pruning is included as 2-bits.
-    - Parameter Storage (Score): 0.002748
-    - Math Operation (Score): 0.003148
-    - Therefore, score is 0.005896
+    - Mask storage for pruning is included as 1-bits.
+    - Parameter Storage (Score): 0.002833
+    - Math Operation (Score): 0.003267
+    - Therefore, score is 0.006100
 - After Early Exiting:
     - Threshold confidence: 0.85
     - Early Exiting Ratio: 32.17%
-    - Parameter Storage (Score): 0.003031
-    - Math Operation (Score): 0.002753
-    - Therefore, score is 0.005784
+    - Parameter Storage (Score): 0.003119
+    - Math Operation (Score): 0.002858
+    - Therefore, score is 0.005977
 - After Pruning Early Exiting:
     - 50% pruning
-    - Mask storage for pruning is included as 2-bits.
+    - Mask storage for pruning is included as 1-bits.
     - Threshold confidence: 0.85
     - Early Exiting Ratio: 29.29%
-    - Parameter Storage (Score): 0.002908
-    - Math Operation (Score): 0.002696
-    - Therefore, score is 0.005604
+    - Parameter Storage (Score): 0.002995
+    - Math Operation (Score): 0.002803
+    - Therefore, score is 0.005798
 
 | <div style="width:70px">Input</div> | Operator         |  k  |  s  |  e  |  i  |  o  |  se  | Parameter Storage    | MULTI      |  ADD       | Math Operations |
 | :---:                               | :---:            |:---:|:---:|:---:|:---:|:---:| :---:| :---:                | :---:      | :---:      | :---:           |
