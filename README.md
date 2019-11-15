@@ -205,3 +205,6 @@ Our score is calculated on 16-bit input, parameter, and 32-bit accumulator.
 * `./reproduce.sh` # For reproducing, run bash file.
 * `pthon main.py ./Config/test.json` # For testing our final checkpoint
 * You can access checkpoints for all steps at https://bit.ly/2pYSFYg
+
+## Acknowledgement
+This work was supported by Institute for Information & Communications Technology Promotion (IITP) grant funded by the Korea government (MSIT) \[No.2018-0-00278,Development of Big Data Edge Analytics SW Technology for Load Balancing and Active Timely Response\].
