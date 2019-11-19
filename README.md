@@ -203,7 +203,7 @@ Our score is calculated on 16-bit input, parameter, and 32-bit accumulator.
 
 ## 4. Reproduce Process
 * `./reproduce.sh` # For reproducing, run bash file.
-* `pthon main.py ./Config/test.json` # For testing our final checkpoint
+* `python main.py ./Config/test.json` # For testing our final checkpoint
 * You can access checkpoints for all steps at https://bit.ly/2pYSFYg
 
 ## Acknowledgement
