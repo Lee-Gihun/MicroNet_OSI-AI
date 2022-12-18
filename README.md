@@ -1,7 +1,10 @@
 
-# MicroNet Challenge (Team: OSI AI)
+# [MicroNet Challenge](https://micronet-challenge.github.io/index.html) (Team: OSI AI) 
+[Challenge Leaderboard](https://micronet-challenge.github.io/leaderboard.html)
+
 
 Our team build a network having `80.04%` accuracy on cifar-100 with `0.0030` Parameter Storage score and `0.0028` Math Operations scroe, achieveing the MicroNet Challenge score of `0.0058`.
+
 
 ## 1. Overview
 The below figure is our proposed architecture for the cifar-100 dataset. The numbers described above the arrows are the shape of each input and output.  
